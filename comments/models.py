@@ -1,29 +1,29 @@
 from django.db import models
 from django.conf import settings
-from django.utils import timezone
-from blog.models import Article
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 
 
 class Comment(models.Model):
     body = models.TextField('正文')
     body_html = models.TextField('源码')
-    created = models.DateTimeField('创建时间', default=timezone.now)
-    updated = models.DateTimeField('更新时间', default=timezone.now)
+    created = models.DateTimeField('创建时间', auto_now_add=True)
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        verbose_name='作者',
-        on_delete=models.CASCADE
-    )
-    article = models.ForeignKey(
-        Article,
-        verbose_name='文章',
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='作者'
     )
     parent = models.ForeignKey(
         'self',
+        on_delete=models.CASCADE,
+        related_name='children',
         verbose_name='父级评论',
-        on_delete=models.CASCADE
+        null=True
     )
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
     enable = models.BooleanField('是否显示', default=True)
 
     class Meta:
@@ -31,3 +31,6 @@ class Comment(models.Model):
         verbose_name = '评论'
         verbose_name_plural = verbose_name
         get_latest_by = 'id'
+
+    def __str__(self):
+        return f"{self.author} -> {self.content_object}"

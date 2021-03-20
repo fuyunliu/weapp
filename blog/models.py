@@ -7,7 +7,7 @@ from comments.models import Comment
 
 
 class Article(models.Model):
-    title = models.CharField('标题', max_length=64, db_index=True)
+    title = models.CharField('标题', max_length=64)
     body = models.TextField('正文')
     body_html = models.TextField('源码')
     abstract = models.TextField('摘要')
@@ -37,13 +37,16 @@ class Article(models.Model):
         verbose_name_plural = verbose_name
         get_latest_by = 'id'
 
+    def __str__(self):
+        return self.title
+
     def save(self, *args, **kwargs):
         self.slug = slugify(self.title)
         super().save(*args, **kwargs)
 
-    def __str__(self):
-        return self.title
-
+    def viewed(self):
+        self.views += 1
+        self.save(update_fields=['views'])
 
 class Pin(models.Model):
     body = models.TextField('正文')
@@ -80,12 +83,12 @@ class Category(models.Model):
         verbose_name = '分类'
         verbose_name_plural = verbose_name
 
+    def __str__(self):
+        return self.name
+
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
         super().save(*args, **kwargs)
-
-    def __str__(self):
-        return self.name
 
 
 class Topic(models.Model):
@@ -97,12 +100,12 @@ class Topic(models.Model):
         verbose_name = '话题'
         verbose_name_plural = verbose_name
 
+    def __str__(self):
+        return self.name
+
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
         super().save(*args, **kwargs)
-
-    def __str__(self):
-        return self.name
 
 
 class Tag(models.Model):
@@ -121,9 +124,9 @@ class Tag(models.Model):
         verbose_name = '标签'
         verbose_name_plural = verbose_name
 
+    def __str__(self):
+        return self.name
+
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
         super().save(*args, **kwargs)
-
-    def __str__(self):
-        return self.name

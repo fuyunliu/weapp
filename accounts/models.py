@@ -1,9 +1,13 @@
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
+from django.db.models.signals import post_save
+
+from commons.phonefields.models import PhoneField
 
 
 class User(AbstractUser):
+    phone = PhoneField('手机号码', blank=True)
     # stars=我关注的人 fans=关注我的人
     stars = models.ManyToManyField(
         'self',
@@ -27,8 +31,9 @@ class Profile(models.Model):
     )
     nickname = models.CharField('昵称', max_length=64, unique=True)
     gender = models.IntegerField('性别', choices=Gender.choices)
+    birthday = models.DateField('生日', null=True, blank=True)
     location = models.CharField('地区', max_length=64, blank=True)
-    about_me = models.TextField('个性签名', blank=True)
+    about_me = models.TextField('签名', blank=True)
     avatar_hash = models.CharField('头像哈希值', max_length=32)
 
     class Meta:
@@ -39,6 +44,18 @@ class Profile(models.Model):
 
     def __str__(self):
         return f'<Profile {self.nickname}>'
+
+    def get_random_nickname(self):
+        self.nickname = ''
+
+
+def create_profile(sender, **kwargs):
+    if kwargs['created']:
+        profile = Profile()
+        profile.user = kwargs['instance']
+        profile.get_random_nickname()
+        profile.save()
+post_save.connect(create_profile, sender=User)
 
 
 class Region(models.Model):

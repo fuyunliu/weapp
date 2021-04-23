@@ -86,14 +86,6 @@ class DigitsSerializer(serializers.Serializer):
         return data
 
 
-class PhoneAndDigitsSerializer(DigitsSerializer):
-    phone = PhoneField()
-
-
-class EmailAndDigitsSerializer(DigitsSerializer):
-    email = serializers.EmailField()
-
-
 class PasswordSerializer(serializers.Serializer):
     password = PasswordField()
 
@@ -120,6 +112,14 @@ class PasswordSerializer(serializers.Serializer):
         data['access'] = str(token)
         update_last_login(None, user)
         return data
+
+
+class PhoneAndDigitsSerializer(DigitsSerializer):
+    phone = PhoneField()
+
+
+class EmailAndDigitsSerializer(DigitsSerializer):
+    email = serializers.EmailField()
 
 
 class PhoneAndPasswordSerializer(PasswordSerializer):

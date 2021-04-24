@@ -6,8 +6,8 @@ from rest_framework.exceptions import AuthenticationFailed
 from oauth.models import TokenUser
 from oauth.tokens import AccessToken
 from oauth.backends import token_backend
-from commons.utils import aware_utcnow, make_timestamp
 from commons.constants import Messages
+from commons.utils import aware_utcnow, make_timestamp
 
 
 class TokenAuthentication(BaseAuthentication):

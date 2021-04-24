@@ -4,7 +4,7 @@ from django.contrib.auth.models import Group, update_last_login
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from oauth import login_user, user_can_authenticate, UntypedToken
+from oauth import login_user, user_can_authenticate
 from commons.constants import Messages
 from commons.fields.serializers import (
     DigitsField,
@@ -132,15 +132,3 @@ class EmailAndPasswordSerializer(PasswordSerializer):
 
 class UsernameAndPasswordSerializer(PasswordSerializer):
     username = serializers.CharField()
-
-
-class TokenSerializer(serializers.Serializer):
-    token = serializers.CharField(required=False)
-
-    def validate(self, attrs):
-        request = self.context['request']
-        raw_token = attrs.get('token') or request.raw_token
-
-        UntypedToken(raw_token)
-
-        return {}

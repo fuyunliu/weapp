@@ -1,5 +1,5 @@
-import jwt
 from django.conf import settings
+import jwt
 from jwt import InvalidAlgorithmError, InvalidTokenError, algorithms
 
 ALLOWED_ALGORITHMS = (

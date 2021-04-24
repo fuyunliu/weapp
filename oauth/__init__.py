@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib.auth import login, logout, user_logged_in, user_logged_out
 from rest_framework.authentication import get_authorization_header
-from oauth.tokens import AccessToken, UntypedToken
+from oauth.tokens import AccessToken
 
 
 def login_user(request, user):

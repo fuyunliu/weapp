@@ -6,10 +6,10 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
+from oauth import logout_user
 from oauth.serializers import (
     UserSerializer,
     GroupSerializer,
-    TokenSerializer,
     PhoneAndDigitsSerializer,
     EmailAndDigitsSerializer,
     PhoneAndPasswordSerializer,
@@ -23,14 +23,13 @@ class TokenViewSet(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def put(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        token = request.auth
+        token.set_exp()
+        data = {'access': str(token)}
+        return Response(data, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -38,7 +37,8 @@ class TokenViewSet(views.APIView):
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
     def delete(self, request, *args, **kwargs):
-        return Response({'method': 'delete'})
+        logout_user(request)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_permissions(self):
         if self.request.method == 'POST':
@@ -64,9 +64,6 @@ class TokenViewSet(views.APIView):
 
         elif self.request.method == 'PUT':
             return EmailAndDigitsSerializer
-
-        return TokenSerializer
-
 
     def get_serializer(self, *args, **kwargs):
         serializer_class = self.get_serializer_class()
@@ -225,7 +222,7 @@ class UserViewSet(viewsets.ModelViewSet):
 class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
-    permission_classes = [IsMeOrAdmin]
+    permission_classes = [permissions.IsAdminUser]
 
     # def permission_denied(self, request, **kwargs):
     #     pass

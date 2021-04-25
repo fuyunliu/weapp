@@ -118,8 +118,35 @@ USERNAME_RANDOM_NAMESPACE = 'uid'
 PHONENUMBER_DEFAULT_REGION = 'CN'
 USERNAME_MODIFY_TIMEDELTA = timedelta(days=365)
 NICKNAME_MODIFY_TIMEDELTA = timedelta(days=90)
+ACCESS_DIGITS_LIFETIME = timedelta(minutes=10)
 
 # https://github.com/SimpleJWT/django-rest-framework-simplejwt#settings
 ACCESS_TOKEN_LIFETIME = timedelta(minutes=10)
 USER_ID_FIELD = 'id'
 USER_ID_CLAIM = 'user_id'
+
+# https://docs.djangoproject.com/en/3.2/topics/logging/
+# LOGGING = {
+#     'version': 1,
+#     'filters': {
+#         'require_debug_true': {
+#             '()': 'django.utils.log.RequireDebugTrue'
+#         }
+#     },
+#     'handlers': {
+#         'console': {
+#             'level': 'DEBUG',
+#             'filters': ['require_debug_true'],
+#             'class': 'logging.StreamHandler'
+#         }
+#     },
+#     'loggers': {
+#         'django.db.backends': {
+#             'level': 'DEBUG',
+#             'handlers': ['console']
+#         }
+#     }
+# }
+
+# https://docs.djangoproject.com/zh-hans/3.2/topics/email/
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

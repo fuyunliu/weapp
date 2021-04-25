@@ -41,11 +41,12 @@ class User(AbstractUser):
     def set_username(self, username=None):
         while True:
             username = username or get_random_name()
-            if not self.__class__.objects.filter(username=username).exists():
+            obj = self.__class__.objects.filter(username=username).first()
+            if obj is None or obj == self:
                 break
             username = None
-
         self.username = self.normalize_username(username)
+        self.name_mtime = timezone.now()
 
 
 class Profile(models.Model):
@@ -84,6 +85,7 @@ class Profile(models.Model):
 
     def set_nickname(self, nickname=None):
         self.nickname = nickname or self.user.username
+        self.nick_mtime = timezone.now()
 
 
 def create_profile(sender, **kwargs):

@@ -7,3 +7,8 @@ class Messages:
     EMAIL_PHONE = 'Email or Phone are required.'
     WRONG_DIGITS = 'Wrong digits.'
     WRONG_PASSWORD = 'Wrong password.'
+
+
+class CacheKey:
+    EMAIL_DIGITS = 'oauth:email:{email}.digits'
+    PHONE_DIGITS = 'oauth:phone:{phone}.digits'

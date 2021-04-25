@@ -10,6 +10,8 @@ from oauth import logout_user
 from oauth.serializers import (
     UserSerializer,
     GroupSerializer,
+    UsernameSerializer,
+    SendDigitsSerializer,
     PhoneAndDigitsSerializer,
     EmailAndDigitsSerializer,
     PhoneAndPasswordSerializer,
@@ -17,6 +19,8 @@ from oauth.serializers import (
     UsernameAndPasswordSerializer
 )
 from commons.permissions import IsMeOrAdmin
+
+UserModel = get_user_model()
 
 
 class TokenViewSet(views.APIView):
@@ -45,6 +49,12 @@ class TokenViewSet(views.APIView):
             self.permission_classes = [permissions.AllowAny]
         return super().get_permissions()
 
+    def get_serializer(self, *args, **kwargs):
+        serializer_class = self.get_serializer_class()
+        ctx = {'request': self.request, 'format': self.format_kwarg, 'view': self}
+        kwargs.setdefault('context', ctx)
+        return serializer_class(*args, **kwargs)
+
     def get_serializer_class(self):
         data = self.request.data
         if self.request.method == 'POST':
@@ -60,29 +70,31 @@ class TokenViewSet(views.APIView):
                     return EmailAndPasswordSerializer
                 elif 'phone' in data:
                     return PhoneAndPasswordSerializer
-            return PhoneAndDigitsSerializer
+            else:
+                return PhoneAndDigitsSerializer
+        return PhoneAndDigitsSerializer
 
-        elif self.request.method == 'PUT':
-            return EmailAndDigitsSerializer
+
+class SendDigitsView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_serializer(self, *args, **kwargs):
         serializer_class = self.get_serializer_class()
-        kwargs.setdefault('context', self.get_serializer_context())
+        ctx = {'request': self.request, 'format': self.format_kwarg, 'view': self}
+        kwargs.setdefault('context', ctx)
         return serializer_class(*args, **kwargs)
 
-    def get_serializer_context(self):
-        """
-        Extra context provided to the serializer class.
-        """
-        return {
-            'request': self.request,
-            'format': self.format_kwarg,
-            'view': self
-        }
+    def get_serializer_class(self):
+        return SendDigitsSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = get_user_model().objects.all()
+    queryset = UserModel.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsMeOrAdmin]
 
@@ -101,14 +113,18 @@ class UserViewSet(viewsets.ModelViewSet):
         action_perms = {
             'create': [permissions.IsAdminUser],
             'digits': [permissions.AllowAny],
-            'activate': [permissions.IsAdminUser]
+            'activate': [permissions.IsAdminUser],
+            'set_username': [IsMeOrAdmin],
         }
         self.permission_classes = action_perms.get(self.action, self.permission_classes)
         return super().get_permissions()
 
-    # def get_serializer_class(self):
-    #     pass
-
+    def get_serializer_class(self):
+        action_sers = {
+            'set_username': UsernameSerializer,
+            'set_nickanme': UsernameSerializer,
+        }
+        return action_sers.get(self.action, self.serializer_class)
 
     @action(['get', 'put', 'patch', 'delete'], detail=False)
     def me(self, request, *args, **kwargs):
@@ -129,40 +145,29 @@ class UserViewSet(viewsets.ModelViewSet):
         user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(methods=['post'], detail=False)
-    def digits(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-
-
-    @action(methods=['post'], detail=True, url_path='send-sms')
-    def send_sms(self, request, *args, **kwargs):
-        # 需要区分是给自己的手机号发送还是给新手机发送
-        # 验证码需要存储三样东西：user_id+phone+code
-        # 谁给哪个手机号发送了什么code
-        # oauth:users:id:1:phone:+8618701538133.code
-        pass
-
-
-    @action(methods=['post'], detail=True, url_path='send-email')
-    def send_email(self, request, *args, **kwargs):
-        # 需要区分是给自己的邮箱发送还是给新邮箱发送
-        # 验证码需要存储三样东西：user_id+email+code
-        # 谁给哪个邮箱发送了什么code
-        # oauth:users:id:1:email:920507252@qq.com.code
-        pass
-
 
     @action(methods=['post'], detail=True, url_path='set-username')
     def set_username(self, request, *args, **kwargs):
-        # 不需要code，一年改一次
-        pass
+        # 不需要code，一年改一次，把逻辑放到serializer，需要验证并返回错误.
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = self.get_object()
+        username = serializer.validated_data['username']
+        user.set_username(username)
+        user.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
     @action(methods=['post'], detail=True, url_path='set-nickname')
     def set_nickname(self, request, *args, **kwargs):
         # 不需要code，一季度改一次
-        pass
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        profile = request.user.profile
+        nickname = serializer.validated_data['nickname']
+        profile.set_nickname(nickname)
+        profile.save(update_fields=['nickname'])
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['post'], detail=True, url_path='set-password')
     def set_password(self, request, *args, **kwargs):

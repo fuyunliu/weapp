@@ -12,10 +12,7 @@ class IsOwnerOrReadOnly(permissions.IsAuthenticated):
 class IsMeOrAdmin(permissions.IsAuthenticated):
     def has_object_permission(self, request, view, obj):
         user = request.user
-        return (
-            user.is_staff or
-            (type(obj) == type(user) and obj.pk == user.pk)
-        )
+        return user.is_staff or obj == user
 
 
 class IsMeOrAdminOrReadOnly(permissions.IsAuthenticated):
@@ -23,6 +20,5 @@ class IsMeOrAdminOrReadOnly(permissions.IsAuthenticated):
         user = request.user
         return (
             request.method in permissions.SAFE_METHODS or
-            user.is_staff or
-            (type(obj) == type(user) and obj.pk == user.pk)
+            user.is_staff or obj == user
         )

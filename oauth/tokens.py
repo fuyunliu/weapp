@@ -10,8 +10,8 @@ class Token:
     lifetime = None
 
     def __init__(self, raw_token=None, verify=True, leeway=0):
-        assert self.token_type is not None, 'Cannot create token with no type'
-        assert self.lifetime is not None, 'Cannot create token with no lifetime'
+        assert self.token_type is not None, 'Cannot create token with no type.'
+        assert self.lifetime is not None, 'Cannot create token with no lifetime.'
 
         self.raw_token = raw_token
         self.current_time = aware_utcnow()

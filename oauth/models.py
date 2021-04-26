@@ -39,22 +39,30 @@ class User(AbstractUser):
         super().save(*args, **kwargs)
 
     def set_username(self, username=None):
-        while True:
-            username = username or get_random_name()
-            obj = self.__class__.objects.filter(username=username).first()
+        def names():
+            if username:
+                yield username
+            if self.username:
+                yield self.username
+            while True:
+                yield get_random_name()
+
+        normalize_username = self.normalize_username
+        for name in names():
+            name = normalize_username(name)
+            obj = self.__class__.objects.filter(username=name).first()
             if obj is None or obj == self:
+                self.username = name
+                self.name_mtime = timezone.now()
                 break
-            username = None
-        self.username = self.normalize_username(username)
-        self.name_mtime = timezone.now()
 
 
 class Profile(models.Model):
     class Gender(models.IntegerChoices):
-        MALE = 0, 'Male'
-        FEMALE = 1, 'Female'
+        MALE = 0, '男'
+        FEMALE = 1, '女'
 
-        __empty__ = 'Unknown'
+        __empty__ = '保密'
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -84,8 +92,23 @@ class Profile(models.Model):
         super().save(*args, **kwargs)
 
     def set_nickname(self, nickname=None):
-        self.nickname = nickname or self.user.username
-        self.nick_mtime = timezone.now()
+        def names():
+            if nickname:
+                yield nickname
+            if self.nickname:
+                yield self.nickname
+            yield self.user.username
+            while True:
+                yield get_random_name()
+
+        normalize_nickname = self.user.normalize_username
+        for name in names():
+            name = normalize_nickname(name)
+            obj = self.__class__.objects.filter(nickname=name).first()
+            if obj is None or obj == self:
+                self.nickname = name
+                self.nick_mtime = timezone.now()
+                break
 
 
 def create_profile(sender, **kwargs):
@@ -93,12 +116,14 @@ def create_profile(sender, **kwargs):
         profile = Profile()
         profile.user = kwargs['instance']
         profile.save()
+
+
 post_save.connect(create_profile, sender=User)
 
 
 class Region(models.Model):
     class Level(models.IntegerChoices):
-        PROVINCCE = 1, 'Province'
+        PROVINCE = 1, 'Province'
         CITY = 2, 'City'
         COUNTRY = 3, 'Country'
         TOWN = 4, 'Town'

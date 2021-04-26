@@ -27,8 +27,8 @@ def get_authorization_token(request):
     auth_header_type = 'Bearer'
     header = get_authorization_header(request)
     try:
-        tipe, token = header.split()
-        if tipe.lower() != auth_header_type.lower().encode():
+        tape, token = header.split()
+        if tape.lower() != auth_header_type.lower().encode():
             return None
         return token.decode()
     except ValueError:

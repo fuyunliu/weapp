@@ -62,6 +62,8 @@ DATABASES = {
     'default': parse_database_url(url=config['DATABASE_URL'])
 }
 
+# Default primary key field type.
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [

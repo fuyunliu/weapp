@@ -5,10 +5,13 @@ class Messages:
     USER_NOT_EXIST = 'User object does not exist.'
     USER_INACTIVE = 'User object is inactive.'
     EMAIL_PHONE = 'Email or Phone are required.'
+    PASSWORD_MISMATCH = "The two password fields didn't match."
     WRONG_DIGITS = 'Wrong digits.'
     WRONG_PASSWORD = 'Wrong password.'
+    NEW_USERNAME = 'You can set your username after {0} days.'
+    NEW_NICKNAME = 'You can set your nickname after {0} days.'
 
 
-class CacheKey:
-    EMAIL_DIGITS = 'oauth:email:{email}.digits'
-    PHONE_DIGITS = 'oauth:phone:{phone}.digits'
+class CacheKeySet:
+    EMAIL_DIGITS = 'oauth:email:{email}:{tape}.digits'
+    PHONE_DIGITS = 'oauth:phone:{phone}:{tape}.digits'

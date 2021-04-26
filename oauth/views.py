@@ -1,16 +1,17 @@
-from django.contrib.auth.models import Group
 from django.contrib.auth import get_user_model
-from rest_framework import viewsets, status, generics, views
+from django.contrib.auth.models import Group
 from rest_framework import permissions
+from rest_framework import viewsets, status, views
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
+from commons.permissions import IsMeOrAdmin
 from oauth import logout_user
 from oauth.serializers import (
     UserSerializer,
     GroupSerializer,
-    UsernameSerializer,
+    SetUsernameSerializer,
+    SetNicknameSerializer,
     SendDigitsSerializer,
     PhoneAndDigitsSerializer,
     EmailAndDigitsSerializer,
@@ -18,7 +19,6 @@ from oauth.serializers import (
     EmailAndPasswordSerializer,
     UsernameAndPasswordSerializer
 )
-from commons.permissions import IsMeOrAdmin
 
 UserModel = get_user_model()
 
@@ -113,18 +113,20 @@ class UserViewSet(viewsets.ModelViewSet):
         action_perms = {
             'create': [permissions.IsAdminUser],
             'digits': [permissions.AllowAny],
-            'activate': [permissions.IsAdminUser],
-            'set_username': [IsMeOrAdmin],
+            'activate': [permissions.IsAdminUser]
         }
         self.permission_classes = action_perms.get(self.action, self.permission_classes)
         return super().get_permissions()
 
     def get_serializer_class(self):
-        action_sers = {
-            'set_username': UsernameSerializer,
-            'set_nickanme': UsernameSerializer,
+        action_seres = {
+            'set_username': SetUsernameSerializer,
+            'set_nickname': SetNicknameSerializer,
+            'set_password': 'aa',
+            'set_email': 'aa',
+            'set_phone': 'aa'
         }
-        return action_sers.get(self.action, self.serializer_class)
+        return action_seres.get(self.action, self.serializer_class)
 
     @action(['get', 'put', 'patch', 'delete'], detail=False)
     def me(self, request, *args, **kwargs):
@@ -145,35 +147,37 @@ class UserViewSet(viewsets.ModelViewSet):
         user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-
     @action(methods=['post'], detail=True, url_path='set-username')
     def set_username(self, request, *args, **kwargs):
-        # 不需要code，一年改一次，把逻辑放到serializer，需要验证并返回错误.
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = self.get_object()
         username = serializer.validated_data['username']
+        user = self.get_object()
         user.set_username(username)
         user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-
     @action(methods=['post'], detail=True, url_path='set-nickname')
     def set_nickname(self, request, *args, **kwargs):
-        # 不需要code，一季度改一次
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        profile = request.user.profile
         nickname = serializer.validated_data['nickname']
+        profile = self.get_object().profile
         profile.set_nickname(nickname)
-        profile.save(update_fields=['nickname'])
+        profile.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['post'], detail=True, url_path='set-password')
     def set_password(self, request, *args, **kwargs):
         # 通过邮箱或手机发送code，验证password和code
         # 直接拼key查找code，找不到或失效则失败
-        pass
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        password = serializer.validated_data['password']
+        user = self.get_object()
+        user.set_password(password)
+        user.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['post'], detail=True, url_path='set-email')
     def set_email(self, request, *args, **kwargs):
@@ -223,11 +227,7 @@ class UserViewSet(viewsets.ModelViewSet):
         pass
 
 
-
 class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     permission_classes = [permissions.IsAdminUser]
-
-    # def permission_denied(self, request, **kwargs):
-    #     pass

@@ -2,4 +2,13 @@ SECRET_KEY = 'ed74sf9t&=rt@0#sg5#8(lmfi%z1fgpsh@kfzkel(zux7dotef'
 
 DEBUG = True
 
-DATABASE_URL = 'postgresql://fuyun:123456qw@127.0.0.1:5432/weblog'
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'weblog',
+        'USER': 'fuyun',
+        'PASSWORD': '123456qw',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
+    }
+}

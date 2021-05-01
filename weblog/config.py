@@ -1,9 +1,16 @@
 import types
 import collections
 from pathlib import Path
-import urllib.parse as urlparse
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def isuppercase(name):
+    return name == name.upper() and not name.startswith('_')
+
+
+def uppercase_attributes(obj):
+    return [name for name in dir(obj) if isuppercase(name)]
 
 
 class Config(collections.UserDict):
@@ -40,9 +47,8 @@ class Config(collections.UserDict):
         with open(self.filename, 'rb') as f:
             exec(compile(f.read(), self.filename, 'exec'), d.__dict__)
 
-        for key in dir(d):
-            if key.isupper():
-                self[key] = getattr(d, key)
+        for name in uppercase_attributes(d):
+            self[name] = getattr(d, name)
 
         self.old_time = Path(self.filename).stat().st_mtime
 
@@ -54,28 +60,6 @@ class Config(collections.UserDict):
 
     def __missing__(self, key):
         return None
-
-
-SCHEMES = {
-    'sqlite': 'django.db.backends.sqlite3',
-    'mysql': 'django.db.backends.mysql',
-    'postgresql': 'django.db.backends.postgresql',
-    'oracle': 'django.db.backends.oracle',
-}
-
-
-def parse_database_url(url):
-    # https://github.com/jacobian/dj-database-url
-    url = urlparse.urlparse(url)
-    config = {
-        'ENGINE': SCHEMES[url.scheme],
-        'NAME': Path(url.path).name,
-        'USER': url.username,
-        'PASSWORD': url.password,
-        'HOST': url.hostname,
-        'PORT': str(url.port)
-    }
-    return config
 
 
 config = Config(BASE_DIR / 'weblog' / 'settings.dev')

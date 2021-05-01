@@ -1,6 +1,8 @@
-from django.conf import settings
 import jwt
-from jwt import InvalidAlgorithmError, InvalidTokenError, algorithms
+from django.conf import settings
+from jwt import algorithms
+
+from commons.constants import Messages
 
 ALLOWED_ALGORITHMS = (
     'HS256',
@@ -28,10 +30,10 @@ class TokenBackend:
         self.issuer = issuer
 
     def _validate_algorithm(self, algorithm):
-        assert algorithm in ALLOWED_ALGORITHMS, f"Unrecognized algorithm '{algorithm}'"
+        assert algorithm in ALLOWED_ALGORITHMS, Messages.UNKNOWN_ALGORITHM.format(algorithm)
 
         if algorithm in algorithms.requires_cryptography:
-            assert algorithms.has_crypto, f"You must have cryptography installed to use '{algorithms}'"
+            assert algorithms.has_crypto, Messages.REQUIRE_CRYPTO.format(algorithm)
 
         return algorithm
 

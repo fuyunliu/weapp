@@ -1,14 +1,11 @@
 from django.conf import settings
-from django.core.cache import cache
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import Group, update_last_login
+from django.core.cache import cache
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from oauth import login_user, user_can_authenticate
-from oauth.models import Profile
-from oauth.email import DigitsEmail
 from commons import utils
 from commons.constants import Messages, CacheKeySet
 from commons.fields.serializers import (
@@ -17,8 +14,17 @@ from commons.fields.serializers import (
     PasswordField,
     TimesinceField
 )
+from oauth import login_user, user_can_authenticate
+from oauth.email import DigitsEmail
+from oauth.models import Profile
 
 UserModel = get_user_model()
+
+
+class GroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+        fields = ['name']
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -67,6 +73,39 @@ class UserCreateSerializer(serializers.ModelSerializer):
         return user
 
 
+class ActivateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserModel
+        fields = ['is_active']
+
+
+class SendPhoneDigitsSerializer(serializers.Serializer):
+    phone = PhoneField()
+    tape = serializers.ChoiceField(choices=['gettoken', 'setpasswd', 'setemail', 'setphone'])
+
+    def validate(self, attrs):
+        digits = utils.get_random_number()
+        key = CacheKeySet.PHONE_DIGITS.format(**attrs)
+        timeout = settings.ACCESS_DIGITS_LIFETIME.total_seconds()
+        cache.set(key, digits, timeout=timeout)
+        print(f'Send phone digits: {digits}')
+        return {}
+
+
+class SendEmailDigitsSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    tape = serializers.ChoiceField(choices=['gettoken', 'setpasswd', 'setemail', 'setphone'])
+
+    def validate(self, attrs):
+        digits = utils.get_random_number()
+        key = CacheKeySet.EMAIL_DIGITS.format(**attrs)
+        timeout = settings.ACCESS_DIGITS_LIFETIME.total_seconds()
+        cache.set(key, digits, timeout=timeout)
+        context = {'digits': digits}
+        DigitsEmail(context=context).send([attrs['email']])
+        return {}
+
+
 class SetUsernameSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserModel
@@ -98,34 +137,61 @@ class SetNicknameSerializer(serializers.ModelSerializer):
 
 class SetPasswordSerializer(serializers.Serializer):
     password = PasswordField()
-    password1 = PasswordField()
+    re_password = PasswordField()
     digits = DigitsField()
 
     def validate(self, attrs):
-        if attrs['password'] != attrs.pop('password1'):
-            raise ValidationError({'password1': Messages.PASSWORD_MISMATCH})
+        if attrs['password'] != attrs.pop('re_password'):
+            raise ValidationError({'re_password': Messages.PASSWORD_MISMATCH})
+        digits = attrs.pop('digits')
+        view = self.context['view']
+        user = view.get_object()
+        key_ed = CacheKeySet.EMAIL_DIGITS.format(email=user.email, tape='setpasswd')
+        key_pd = CacheKeySet.PHONE_DIGITS.format(phone=user.phone, tape='setpasswd')
+        value = cache.get(key_ed) or cache.get(key_pd)
+        if value is None or value != digits:
+            raise ValidationError({'digits': Messages.WRONG_DIGITS})
+        return attrs
 
+class SetEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    digits = DigitsField()
 
+    def validate(self, attrs):
+        digits = attrs.pop('digits')
+
+        if UserModel.objects.filter(**attrs).exists():
+            raise ValidationError({'email': Messages.EMAIL_EXIST})
+
+        key = CacheKeySet.EMAIL_DIGITS.format(email=attrs['email'], tape='setemail')
+        value = cache.get(key)
+        if value is None or value != digits:
+            raise ValidationError({'digits': Messages.WRONG_DIGITS})
         return attrs
 
 
-class GroupSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Group
-        fields = ['name']
+class SetPhoneSerializer(serializers.Serializer):
+    phone = PhoneField()
+    digits = DigitsField()
+
+    def validate(self, attrs):
+        digits = attrs.pop('digits')
+
+        if UserModel.objects.filter(**attrs).exists():
+            raise ValidationError({'phone': Messages.PHONE_EXIST})
+
+        key = CacheKeySet.PHONE_DIGITS.format(phone=attrs['phone'], tape='setphone')
+        value = cache.get(key)
+        if value is None or value != digits:
+            raise ValidationError({'digits': Messages.WRONG_DIGITS})
+        return attrs
 
 
-class ActivateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = get_user_model()
-        fields = ['is_active']
-
-
-class DigitsSerializer(serializers.Serializer):
+class PhoneAndDigitsSerializer(serializers.Serializer):
+    phone = PhoneField()
     digits = DigitsField()
 
     default_error_messages = {
-        'wrong_digits': Messages.WRONG_DIGITS,
         'inactive_user': Messages.USER_INACTIVE
     }
 
@@ -135,21 +201,10 @@ class DigitsSerializer(serializers.Serializer):
         if not user_can_authenticate(user):
             self.fail('inactive_user')
 
-        # validate digits
-        email = attrs.get('email')
-        phone = attrs.get('phone')
-        if email is not None:
-            key = CacheKeySet.EMAIL_DIGITS.format(email=email, tape='gettoken')
-            value = cache.get(key)
-            if value is None or digits != value:
-                # self.fail('wrong_digits')
-                raise ValidationError({'digits': Messages.WRONG_DIGITS})
-        if phone is not None:
-            key = CacheKeySet.PHONE_DIGITS.format(phone=phone, tape='gettoken')
-            value = cache.get(key)
-            if value is None or value != digits:
-                # self.fail('wrong_digits')
-                raise ValidationError({'digits': Messages.WRONG_DIGITS})
+        key = CacheKeySet.PHONE_DIGITS.format(phone=attrs['phone'], tape='gettoken')
+        value = cache.get(key)
+        if value is None or value != digits:
+            raise ValidationError({'digits': Messages.WRONG_DIGITS})
 
         data = {}
         request = self.context['request']
@@ -159,12 +214,39 @@ class DigitsSerializer(serializers.Serializer):
         return data
 
 
-class PasswordSerializer(serializers.Serializer):
+class EmailAndDigitsSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    digits = DigitsField()
+
+    default_error_messages = {
+        'inactive_user': Messages.USER_INACTIVE
+    }
+
+    def validate(self, attrs):
+        digits = attrs.pop('digits')
+        user, _ = UserModel.objects.get_or_create(**attrs)
+        if not user_can_authenticate(user):
+            self.fail('inactive_user')
+
+        key = CacheKeySet.EMAIL_DIGITS.format(email=attrs['email'], tape='gettoken')
+        value = cache.get(key)
+        if value is None or digits != value:
+            raise ValidationError({'digits': Messages.WRONG_DIGITS})
+
+        data = {}
+        request = self.context['request']
+        token = login_user(request, user)
+        data['access'] = str(token)
+        update_last_login(None, user)
+        return data
+
+
+class PhoneAndPasswordSerializer(serializers.Serializer):
+    phone = PhoneField()
     password = PasswordField()
 
     default_error_messages = {
         'user_not_exist': Messages.USER_NOT_EXIST,
-        'wrong_password': Messages.WRONG_PASSWORD,
         'inactive_user': Messages.USER_INACTIVE
     }
 
@@ -174,7 +256,6 @@ class PasswordSerializer(serializers.Serializer):
         if user is None:
             self.fail('user_not_exist')
         if not user.check_password(password):
-            # self.fail('wrong_password')
             raise ValidationError({'password': Messages.WRONG_PASSWORD})
         if not user_can_authenticate(user):
             self.fail('inactive_user')
@@ -188,53 +269,58 @@ class PasswordSerializer(serializers.Serializer):
         return data
 
 
-class SendDigitsSerializer(serializers.Serializer):
-    phone = PhoneField(required=False)
-    email = serializers.EmailField(required=False)
-    # 验证码的用途
-    tape = serializers.ChoiceField(choices=['gettoken', 'setpasswd', 'setemail', 'setphone'])
+
+class EmailAndPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = PasswordField()
 
     default_error_messages = {
-        'email_phone': Messages.EMAIL_PHONE
+        'user_not_exist': Messages.USER_NOT_EXIST,
+        'inactive_user': Messages.USER_INACTIVE
     }
 
     def validate(self, attrs):
-        email = attrs.get('email')
-        phone = attrs.get('phone')
-        tape = attrs['tape']
-        if not any((email, phone)):
-            self.fail('email_phone')
-        digits = utils.get_random_number()
-        timeout = settings.ACCESS_DIGITS_LIFETIME
-        timeout = timeout.total_seconds()
-        if email is not None:
-            context = {'digits': digits}
-            DigitsEmail(context=context).send([email])
-            key = CacheKeySet.EMAIL_DIGITS.format(email=email, tape=tape)
-            cache.set(key, digits, timeout=timeout)
-        if phone is not None:
-            print(f'send phone digits: {digits}')
-            key = CacheKeySet.PHONE_DIGITS.format(phone=phone, tape=tape)
-            cache.set(key, digits, timeout=timeout)
+        password = attrs.pop('password')
+        user = UserModel.objects.filter(**attrs).first()
+        if user is None:
+            self.fail('user_not_exist')
+        if not user.check_password(password):
+            raise ValidationError({'password': Messages.WRONG_PASSWORD})
+        if not user_can_authenticate(user):
+            self.fail('inactive_user')
 
-        return {}
+        request = self.context['request']
+        user = authenticate(request=request, **attrs, password=password)
+        data = {}
+        token = login_user(request, user)
+        data['access'] = str(token)
+        update_last_login(None, user)
+        return data
 
 
-class PhoneAndDigitsSerializer(DigitsSerializer):
-    phone = PhoneField()
-
-
-class EmailAndDigitsSerializer(DigitsSerializer):
-    email = serializers.EmailField()
-
-
-class PhoneAndPasswordSerializer(PasswordSerializer):
-    phone = PhoneField()
-
-
-class EmailAndPasswordSerializer(PasswordSerializer):
-    email = serializers.EmailField()
-
-
-class UsernameAndPasswordSerializer(PasswordSerializer):
+class UsernameAndPasswordSerializer(serializers.Serializer):
     username = serializers.CharField()
+    password = PasswordField()
+
+    default_error_messages = {
+        'user_not_exist': Messages.USER_NOT_EXIST,
+        'inactive_user': Messages.USER_INACTIVE
+    }
+
+    def validate(self, attrs):
+        password = attrs.pop('password')
+        user = UserModel.objects.filter(**attrs).first()
+        if user is None:
+            self.fail('user_not_exist')
+        if not user.check_password(password):
+            raise ValidationError({'password': Messages.WRONG_PASSWORD})
+        if not user_can_authenticate(user):
+            self.fail('inactive_user')
+
+        request = self.context['request']
+        user = authenticate(request=request, **attrs, password=password)
+        data = {}
+        token = login_user(request, user)
+        data['access'] = str(token)
+        update_last_login(None, user)
+        return data

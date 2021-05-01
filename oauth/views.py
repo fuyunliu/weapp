@@ -1,24 +1,16 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.utils import timezone
 from rest_framework import permissions
 from rest_framework import viewsets, status, views
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from commons.permissions import IsMeOrAdmin
-from oauth import logout_user
-from oauth.serializers import (
-    UserSerializer,
-    GroupSerializer,
-    SetUsernameSerializer,
-    SetNicknameSerializer,
-    SendDigitsSerializer,
-    PhoneAndDigitsSerializer,
-    EmailAndDigitsSerializer,
-    PhoneAndPasswordSerializer,
-    EmailAndPasswordSerializer,
-    UsernameAndPasswordSerializer
-)
+from oauth import serializers, logout_user
+from oauth.tasks import destroy_user
+from oauth.email import DestroyUserEmail
 
 UserModel = get_user_model()
 
@@ -60,19 +52,19 @@ class TokenViewSet(views.APIView):
         if self.request.method == 'POST':
             if 'digits' in data:
                 if 'phone' in data:
-                    return PhoneAndDigitsSerializer
+                    return serializers.PhoneAndDigitsSerializer
                 elif 'email' in data:
-                    return EmailAndDigitsSerializer
+                    return serializers.EmailAndDigitsSerializer
             elif 'password' in data:
                 if 'username' in data:
-                    return UsernameAndPasswordSerializer
+                    return serializers.UsernameAndPasswordSerializer
                 elif 'email' in data:
-                    return EmailAndPasswordSerializer
+                    return serializers.EmailAndPasswordSerializer
                 elif 'phone' in data:
-                    return PhoneAndPasswordSerializer
+                    return serializers.PhoneAndPasswordSerializer
             else:
-                return PhoneAndDigitsSerializer
-        return PhoneAndDigitsSerializer
+                return serializers.PhoneAndDigitsSerializer
+        return serializers.PhoneAndDigitsSerializer
 
 
 class SendDigitsView(views.APIView):
@@ -90,12 +82,20 @@ class SendDigitsView(views.APIView):
         return serializer_class(*args, **kwargs)
 
     def get_serializer_class(self):
-        return SendDigitsSerializer
+        data = self.request.data
+        if self.request.method == 'POST':
+            if 'phone' in data:
+                return serializers.SendPhoneDigitsSerializer
+            elif 'email' in data:
+                return serializers.SendEmailDigitsSerializer
+            else:
+                return serializers.SendPhoneDigitsSerializer
+        return serializers.SendPhoneDigitsSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = UserModel.objects.all()
-    serializer_class = UserSerializer
+    serializer_class = serializers.UserSerializer
     permission_classes = [IsMeOrAdmin]
 
     def get_queryset(self):
@@ -120,13 +120,27 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         action_seres = {
-            'set_username': SetUsernameSerializer,
-            'set_nickname': SetNicknameSerializer,
-            'set_password': 'aa',
-            'set_email': 'aa',
-            'set_phone': 'aa'
+            'set_username': serializers.SetUsernameSerializer,
+            'set_nickname': serializers.SetNicknameSerializer,
+            'set_password': serializers.SetPasswordSerializer,
+            'set_email': serializers.SetEmailSerializer,
+            'set_phone': serializers.SetPhoneSerializer
         }
         return action_seres.get(self.action, self.serializer_class)
+
+    def destroy(self, request, *args, **kwargs):
+        user = self.get_object()
+        serializer = self.get_serializer(user, data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        if user == request.user:
+            logout_user(request)
+        self.perform_destroy(user)
+        DestroyUserEmail(request).send([user.email])
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def perform_destroy(self, instance):
+        destroy_user.apply_async(eta=timezone.now() + settings.DESTROY_USER_TIMEDELTA, expires=60)
 
     @action(['get', 'put', 'patch', 'delete'], detail=False)
     def me(self, request, *args, **kwargs):
@@ -169,8 +183,6 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(methods=['post'], detail=True, url_path='set-password')
     def set_password(self, request, *args, **kwargs):
-        # 通过邮箱或手机发送code，验证password和code
-        # 直接拼key查找code，找不到或失效则失败
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         password = serializer.validated_data['password']
@@ -181,15 +193,23 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(methods=['post'], detail=True, url_path='set-email')
     def set_email(self, request, *args, **kwargs):
-        # 给新邮件地址发送code
-        # 直接拼key查找code，找不到或失效则失败
-        pass
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid()
+        email = serializer.validated_data['email']
+        user = self.get_object()
+        user.email = email
+        user.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['post'], detail=True, url_path='set-phone')
     def set_phone(self, request, *args, **kwargs):
-        # 给新手机发送code
-        # 直接拼key查找code，找不到或失效则失败
-        pass
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid()
+        phone = serializer.validated_data['phone']
+        user = self.get_object()
+        user.phone = phone
+        user.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['get'], detail=True)
     def articles(self, request, *args, **kwargs):
@@ -229,5 +249,5 @@ class UserViewSet(viewsets.ModelViewSet):
 
 class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all()
-    serializer_class = GroupSerializer
+    serializer_class = serializers.GroupSerializer
     permission_classes = [permissions.IsAdminUser]

@@ -15,5 +15,5 @@ def send_email(messages, backend_kwargs=None, **kwargs):
 
 
 @shared_task
-def send_digits():
-    pass
+def send_digits(digits):
+    print(f'Send phone digits: {digits}')

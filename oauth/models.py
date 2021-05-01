@@ -27,7 +27,7 @@ class User(AbstractUser):
     #     symmetrical=False, # 非对称关系
     #     verbose_name='我关注的人'
     # )
-    name_mtime = models.DateTimeField('用户名修改时间', default=_username_mtime, editable=False)
+    name_mtime = models.DateTimeField('改名时间', default=_username_mtime, editable=False)
 
     class Meta(AbstractUser.Meta):
         ordering = ['-id']
@@ -75,7 +75,7 @@ class Profile(models.Model):
     location = models.CharField('地区', max_length=64, blank=True)
     about_me = models.TextField('签名', blank=True)
     avatar_hash = models.CharField('头像哈希值', max_length=32)
-    nick_mtime = models.DateTimeField('昵称修改时间', default=_nickname_mtime, editable=False)
+    nick_mtime = models.DateTimeField('改名时间', default=_nickname_mtime, editable=False)
 
     class Meta:
         ordering = ['-user_id']

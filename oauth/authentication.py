@@ -61,7 +61,7 @@ class TokenAuthentication(BaseAuthentication):
         try:
             user_id = validated_token[settings.USER_ID_CLAIM]
         except KeyError:
-            raise AuthenticationFailed(Messages.UID_KEYERROR)
+            raise AuthenticationFailed(Messages.UNKNOWN_UID)
 
         try:
             user = self.user_model.objects.get(**{settings.USER_ID_FIELD: user_id})
@@ -78,5 +78,5 @@ class TokenAuthentication(BaseAuthentication):
         Returns a stateless user object using the given validated token.
         """
         if settings.USER_ID_CLAIM not in validated_token:
-            raise AuthenticationFailed(Messages.UID_KEYERROR)
+            raise AuthenticationFailed(Messages.UNKNOWN_UID)
         return TokenUser(validated_token)

@@ -1,5 +1,5 @@
 from datetime import timedelta
-from weblog.config import config, parse_database_url
+from weblog.config import config
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config['SECRET_KEY']
@@ -58,9 +58,6 @@ WSGI_APPLICATION = 'weblog.wsgi.application'
 
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 DATABASES = config['DATABASES']
-DATABASES = {
-    'default': parse_database_url(url=config['DATABASE_URL'])
-}
 
 # Default primary key field type.
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -121,6 +118,7 @@ PHONENUMBER_DEFAULT_REGION = 'CN'
 USERNAME_MODIFY_TIMEDELTA = timedelta(days=365)
 NICKNAME_MODIFY_TIMEDELTA = timedelta(days=90)
 ACCESS_DIGITS_LIFETIME = timedelta(minutes=10)
+DESTROY_USER_TIMEDELTA = timedelta(days=14)
 
 # https://github.com/SimpleJWT/django-rest-framework-simplejwt#settings
 ACCESS_TOKEN_LIFETIME = timedelta(minutes=10)

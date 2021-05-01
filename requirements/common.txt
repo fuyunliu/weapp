@@ -1,0 +1,6 @@
+Django
+djangorestframework
+celery
+PyJWT
+phonenumberslite
+pendulum

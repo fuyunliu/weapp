@@ -62,4 +62,4 @@ class Config(collections.UserDict):
         return None
 
 
-config = Config(BASE_DIR / 'weblog' / 'settings.dev')
+config = Config(BASE_DIR / 'weapp' / 'settings.dev')

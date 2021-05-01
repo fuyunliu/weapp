@@ -1,5 +1,5 @@
 from datetime import timedelta
-from weblog.config import config
+from weapp.config import config
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config['SECRET_KEY']
@@ -18,9 +18,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'oauth.apps.OAuthConfig',
-    # 'blog.apps.BlogConfig',
-    # 'likes.apps.LikesConfig',
-    # 'comments.apps.CommentsConfig',
+    'weblog.apps.WeblogConfig',
+    'comments.apps.CommentsConfig',
+    'likes.apps.LikesConfig',
     'rest_framework'
 ]
 
@@ -35,7 +35,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'weblog.urls'
+ROOT_URLCONF = 'weapp.urls'
 
 TEMPLATES = [
     {
@@ -53,7 +53,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'weblog.wsgi.application'
+WSGI_APPLICATION = 'weapp.wsgi.application'
 
 
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
@@ -104,7 +104,7 @@ AUTH_USER_MODEL = 'oauth.User'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
-        # 'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
         # 'oauth.authentication.TokenAuthentication'
     ],
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'],

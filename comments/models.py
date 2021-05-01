@@ -24,7 +24,7 @@ class Comment(models.Model):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
-    enable = models.BooleanField('是否显示', default=True)
+    enabled = models.BooleanField('是否显示', default=True)
 
     class Meta:
         ordering = ['id']

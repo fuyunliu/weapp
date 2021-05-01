@@ -12,6 +12,8 @@ class Messages:
     WRONG_PASSWORD = 'Wrong password.'
     NEW_USERNAME = 'You can set your username after {0} days.'
     NEW_NICKNAME = 'You can set your nickname after {0} days.'
+    USERNAME_EXIST = 'Username already exists.'
+    NICKNAME_EXIST = 'Nickname already exists.'
     EMAIL_EXIST = 'Email already exists.'
     PHONE_EXIST = 'Phone already exists'
 

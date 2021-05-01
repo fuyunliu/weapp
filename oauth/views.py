@@ -112,14 +112,15 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         action_perms = {
             'create': [permissions.IsAdminUser],
-            'digits': [permissions.AllowAny],
-            'activate': [permissions.IsAdminUser]
+            'activation': [permissions.IsAdminUser]
         }
         self.permission_classes = action_perms.get(self.action, self.permission_classes)
         return super().get_permissions()
 
     def get_serializer_class(self):
         action_seres = {
+            'create': serializers.UserCreateSerializer,
+            'destroy': serializers.UserDeleteSerializer,
             'set_username': serializers.SetUsernameSerializer,
             'set_nickname': serializers.SetNicknameSerializer,
             'set_password': serializers.SetPasswordSerializer,
@@ -132,7 +133,6 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.get_object()
         serializer = self.get_serializer(user, data=request.data)
         serializer.is_valid(raise_exception=True)
-
         if user == request.user:
             logout_user(request)
         self.perform_destroy(user)
@@ -140,22 +140,17 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def perform_destroy(self, instance):
-        destroy_user.apply_async(eta=timezone.now() + settings.DESTROY_USER_TIMEDELTA, expires=60)
+        instance.is_active = False
+        instance.save()
+        destroy_user.apply_async((instance.pk,), eta=timezone.now() + settings.DESTROY_USER_TIMEDELTA, expires=60)
 
-    @action(['get', 'put', 'patch', 'delete'], detail=False)
+    @action(['get'], detail=False)
     def me(self, request, *args, **kwargs):
         self.get_object = self.get_instance
-        if request.method == 'GET':
-            return self.retrieve(request, *args, **kwargs)
-        elif request.method == 'PUT':
-            return self.update(request, *args, **kwargs)
-        elif request.method == 'PATCH':
-            return self.partial_update(request, *args, **kwargs)
-        elif request.method == 'DELETE':
-            return self.destroy(request, *args, **kwargs)
+        return self.retrieve(request, *args, **kwargs)
 
     @action(['post'], detail=True)
-    def activate(self, request, *args, **kwargs):
+    def activation(self, request, *args, **kwargs):
         user = self.get_object()
         user.is_active = not user.is_active
         user.save()
@@ -163,30 +158,31 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(methods=['post'], detail=True, url_path='set-username')
     def set_username(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        user = self.get_object()
+        serializer = self.get_serializer(user, data=request.data)
         serializer.is_valid(raise_exception=True)
         username = serializer.validated_data['username']
-        user = self.get_object()
         user.set_username(username)
         user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['post'], detail=True, url_path='set-nickname')
     def set_nickname(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        user = self.get_object()
+        serializer = self.get_serializer(user, data=request.data)
         serializer.is_valid(raise_exception=True)
         nickname = serializer.validated_data['nickname']
-        profile = self.get_object().profile
+        profile = user.profile
         profile.set_nickname(nickname)
         profile.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['post'], detail=True, url_path='set-password')
     def set_password(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        user = self.get_object()
+        serializer = self.get_serializer(user, data=request.data)
         serializer.is_valid(raise_exception=True)
         password = serializer.validated_data['password']
-        user = self.get_object()
         user.set_password(password)
         user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)

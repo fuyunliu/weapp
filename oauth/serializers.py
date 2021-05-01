@@ -1,10 +1,12 @@
 from django.conf import settings
+from django.core.cache import cache
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import Group, update_last_login
-from django.core.cache import cache
+from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from rest_framework.settings import api_settings
 
 from commons import utils
 from commons.constants import Messages, CacheKeySet
@@ -36,41 +38,63 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     date_joined = TimesinceField(read_only=True)
-    profile = ProfileSerializer()
+    profile = ProfileSerializer(read_only=True)
 
     class Meta:
         model = UserModel
-        fields = ['url', 'username', 'email', 'phone', 'date_joined', 'profile']
+        fields = ['url', 'username', 'email', 'phone', 'first_name', 'last_name', 'date_joined', 'profile']
         read_only_fields = ['username', 'email', 'phone']
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    digits = DigitsField()
-
-    default_error_messages = {
-        'email_phone': Messages.EMAIL_PHONE
-    }
-
     class Meta:
         model = UserModel
-        fields = ['email', 'phone', 'digits']
+        fields = ['username', 'email', 'phone', 'password']
+        extra_kwargs = {
+            'email': {'required': True, 'allow_blank': False},
+            'phone': {'required': True, 'allow_blank': False},
+            'password': {'required': True}
+        }
 
-    def validate(self, attrs):
-        email = attrs.get('email')
-        phone = attrs.get('phone')
-        # digits = attrs.pop('digits')
-        if not any((email, phone)):
-            self.fail('email_phone')
-        return attrs
+    def validate_username(self, value):
+        if UserModel.objects.filter(username=value).exists():
+            raise ValidationError(Messages.USERNAME_EXIST)
+        return value
+
+    def validate_email(self, value):
+        if UserModel.objects.filter(email=value).exists():
+            raise ValidationError(Messages.EMAIL_EXIST)
+        return value
+
+    def validate_phone(self, value):
+        if UserModel.objects.filter(phone=value).exists():
+            raise ValidationError(Messages.PHONE_EXIST)
+        return value
+
+    def validate_password(self, value):
+        try:
+            validate_password(value)
+        except serializers.DjangoValidationError as e:
+            errors = serializers.as_serializer_error(e)
+            raise ValidationError(errors[api_settings.NON_FIELD_ERRORS_KEY])
+        return value
 
     def create(self, validated_data):
         user = self.perform_create(validated_data)
         return user
 
     def perform_create(self, validated_data):
-        user_model = self.Meta.model
-        user = user_model.objects.get_or_create(**validated_data)
+        user = UserModel.objects.create_user(**validated_data)
         return user
+
+
+class UserDeleteSerializer(serializers.Serializer):
+    password = PasswordField()
+
+    def validate_password(self, value):
+        if not self.instance.check_password(value):
+            raise ValidationError(Messages.WRONG_PASSWORD)
+        return value
 
 
 class ActivateSerializer(serializers.ModelSerializer):
@@ -111,10 +135,13 @@ class SetUsernameSerializer(serializers.ModelSerializer):
         model = UserModel
         fields = ['username']
 
+    def validate_username(self, value):
+        if UserModel.objects.filter(username=value).exists():
+            raise ValidationError(Messages.USERNAME_EXIST)
+        return value
+
     def validate(self, attrs):
-        view = self.context['view']
-        user = view.get_object()
-        allowed_time = settings.USERNAME_MODIFY_TIMEDELTA - (timezone.now() - user.name_mtime)
+        allowed_time = settings.USERNAME_MODIFY_TIMEDELTA - (timezone.now() - self.instance.name_mtime)
         if allowed_time.total_seconds() > 0:
             raise ValidationError(Messages.NEW_USERNAME.format(allowed_time.days))
         return attrs
@@ -125,10 +152,13 @@ class SetNicknameSerializer(serializers.ModelSerializer):
         model = Profile
         fields = ['nickname']
 
+    def validate_nickname(self, value):
+        if Profile.objects.filter(username=value).exists():
+            raise ValidationError(Messages.NICKNAME_EXIST)
+        return value
+
     def validate(self, attrs):
-        view = self.context['view']
-        user = view.get_object()
-        profile = user.profile
+        profile = self.instance.profile
         allowed_time = settings.NICKNAME_MODIFY_TIMEDELTA - (timezone.now() - profile.nick_mtime)
         if allowed_time.total_seconds() > 0:
             raise ValidationError(Messages.NEW_NICKNAME.format(allowed_time.days))
@@ -136,33 +166,40 @@ class SetNicknameSerializer(serializers.ModelSerializer):
 
 
 class SetPasswordSerializer(serializers.Serializer):
-    password = PasswordField()
+    new_password = PasswordField()
     re_password = PasswordField()
     digits = DigitsField()
 
     def validate(self, attrs):
-        if attrs['password'] != attrs.pop('re_password'):
+        if attrs['new_password'] != attrs.pop('re_password'):
             raise ValidationError({'re_password': Messages.PASSWORD_MISMATCH})
+
         digits = attrs.pop('digits')
-        view = self.context['view']
-        user = view.get_object()
-        key_ed = CacheKeySet.EMAIL_DIGITS.format(email=user.email, tape='setpasswd')
-        key_pd = CacheKeySet.PHONE_DIGITS.format(phone=user.phone, tape='setpasswd')
+        key_ed = CacheKeySet.EMAIL_DIGITS.format(email=self.instance.email, tape='setpasswd')
+        key_pd = CacheKeySet.PHONE_DIGITS.format(phone=self.instance.phone, tape='setpasswd')
         value = cache.get(key_ed) or cache.get(key_pd)
         if value is None or value != digits:
             raise ValidationError({'digits': Messages.WRONG_DIGITS})
+
+        try:
+            validate_password(attrs['new_password'])
+        except serializers.DjangoValidationError as e:
+            errors = serializers.as_serializer_error(e)
+            raise ValidationError({'new_password': errors[api_settings.NON_FIELD_ERRORS_KEY]})
+
         return attrs
 
 class SetEmailSerializer(serializers.Serializer):
     email = serializers.EmailField()
     digits = DigitsField()
 
+    def validate_email(self, value):
+        if UserModel.objects.filter(email=value).exists():
+            raise ValidationError(Messages.EMAIL_EXIST)
+        return value
+
     def validate(self, attrs):
         digits = attrs.pop('digits')
-
-        if UserModel.objects.filter(**attrs).exists():
-            raise ValidationError({'email': Messages.EMAIL_EXIST})
-
         key = CacheKeySet.EMAIL_DIGITS.format(email=attrs['email'], tape='setemail')
         value = cache.get(key)
         if value is None or value != digits:
@@ -174,12 +211,13 @@ class SetPhoneSerializer(serializers.Serializer):
     phone = PhoneField()
     digits = DigitsField()
 
+    def validate_phone(self, value):
+        if UserModel.objects.filter(phone=value).exists():
+            raise ValidationError(Messages.PHONE_EXIST)
+        return value
+
     def validate(self, attrs):
         digits = attrs.pop('digits')
-
-        if UserModel.objects.filter(**attrs).exists():
-            raise ValidationError({'phone': Messages.PHONE_EXIST})
-
         key = CacheKeySet.PHONE_DIGITS.format(phone=attrs['phone'], tape='setphone')
         value = cache.get(key)
         if value is None or value != digits:

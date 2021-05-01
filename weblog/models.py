@@ -8,9 +8,7 @@ class Article(models.Model):
     title = models.CharField('标题', max_length=64)
     body = models.TextField('正文')
     body_html = models.TextField('源码')
-    abstract = models.TextField('摘要')
     draft = models.BooleanField('草稿', default=True)
-    views = models.PositiveIntegerField('阅读量', default=0)
     created = models.DateTimeField('创建时间', auto_now_add=True, editable=False)
     updated = models.DateTimeField('更新时间', auto_now=True, editable=False)
     slug = models.SlugField(unique=True)
@@ -28,6 +26,7 @@ class Article(models.Model):
     tags = models.ManyToManyField('Tag', verbose_name='标签集', blank=True)
     topics = models.ManyToManyField('Topic', verbose_name='话题集', blank=True)
     comments = GenericRelation('comments.Comment')
+    likes = GenericRelation('likes.Like')
 
     class Meta:
         ordering = ['-created']
@@ -42,9 +41,6 @@ class Article(models.Model):
         self.slug = slugify(self.title)
         super().save(*args, **kwargs)
 
-    def viewed(self):
-        self.views += 1
-        self.save(update_fields=['views'])
 
 class Pin(models.Model):
     body = models.TextField('正文')
@@ -57,6 +53,7 @@ class Pin(models.Model):
         verbose_name='作者'
     )
     comments = GenericRelation('comments.Comment')
+    likes = GenericRelation('likes.Like')
 
     class Meta:
         ordering = ['-created']

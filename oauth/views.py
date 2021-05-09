@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from commons.permissions import IsMeOrAdmin
 from oauth import serializers, logout_user
+from oauth.models import Profile
 from oauth.tasks import destroy_user
 from oauth.email import DestroyUserEmail
 
@@ -241,6 +242,12 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(methods=['get'], detail=True)
     def polls(self, request, *args, **kwargs):
         pass
+
+
+class ProfileViewSet(viewsets.ModelViewSet):
+    queryset = Profile.objects.all()
+    serializer_class = serializers.ProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 
 class GroupViewSet(viewsets.ModelViewSet):

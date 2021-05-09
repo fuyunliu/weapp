@@ -1,4 +1,4 @@
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.db.utils import IntegrityError
 from django.utils import timezone
@@ -15,7 +15,7 @@ class Command(BaseCommand):
         faker = Faker()
         user_model = get_user_model()
         for _ in range(int(count)):
-            user = {
+            fields = {
                 'username': faker.user_name(),
                 'email': faker.email(),
                 'phone': faker.phone_number(),
@@ -26,7 +26,8 @@ class Command(BaseCommand):
                 'last_login': timezone.now()
             }
             try:
-                user_model.objects.create_user(**user)
+                user = user_model.objects.create_user(**fields)
             except IntegrityError:
-                CommandError('创建失败！')
-            self.stdout.write(self.style.SUCCESS(f'Successfully create user {user["username"]}'))
+                self.stdout.write(self.style.ERROR('创建失败！'))
+            else:
+                self.stdout.write(self.style.SUCCESS(f'Successfully create user {user.username}'))

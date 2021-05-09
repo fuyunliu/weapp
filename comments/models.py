@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
+from markdown import markdown
 
 
 class Comment(models.Model):
@@ -34,3 +35,7 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"{self.author} -> {self.content_object}"
+
+    def save(self, *args, **kwargs):
+        self.body_html = markdown(self.body, extensions=['fenced_code', 'codehilite'])
+        super().save(*args, **kwargs)

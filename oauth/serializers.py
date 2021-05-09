@@ -38,22 +38,26 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     date_joined = TimesinceField(read_only=True)
-    profile = ProfileSerializer(read_only=True)
+    profile = serializers.HyperlinkedRelatedField(lookup_field='pk', view_name='profile-detail', read_only=True)
+    nickname = serializers.ReadOnlyField(source='profile.nickname')
+    articles = serializers.HyperlinkedRelatedField(many=True, view_name='article-detail', read_only=True)
 
     class Meta:
         model = UserModel
-        fields = ['url', 'username', 'email', 'phone', 'first_name', 'last_name', 'date_joined', 'profile']
+        fields = ['url', 'username', 'nickname', 'email', 'phone', 'first_name', 'last_name', 'date_joined', 'articles', 'profile']
         read_only_fields = ['username', 'email', 'phone']
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
+    password = PasswordField(label='密码')
+    re_password = PasswordField(label='确认密码')
+
     class Meta:
         model = UserModel
-        fields = ['username', 'email', 'phone', 'password']
+        fields = ['username', 'email', 'phone', 'password', 're_password']
         extra_kwargs = {
             'email': {'required': True, 'allow_blank': False},
-            'phone': {'required': True, 'allow_blank': False},
-            'password': {'required': True}
+            'phone': {'required': True, 'allow_blank': False}
         }
 
     def validate_username(self, value):
@@ -78,6 +82,11 @@ class UserCreateSerializer(serializers.ModelSerializer):
             errors = serializers.as_serializer_error(e)
             raise ValidationError(errors[api_settings.NON_FIELD_ERRORS_KEY])
         return value
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs.pop('re_password'):
+            raise ValidationError({'re_password': Messages.PASSWORD_MISMATCH})
+        return attrs
 
     def create(self, validated_data):
         user = self.perform_create(validated_data)

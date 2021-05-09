@@ -6,6 +6,7 @@ from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.db.models.signals import post_save
 from django.db.models.manager import EmptyManager
 
+from commons.managers import RandomManager
 from commons.fields.models import PhoneField
 from commons.utils import get_random_name
 
@@ -28,9 +29,10 @@ class User(AbstractUser):
     #     verbose_name='我关注的人'
     # )
     name_mtime = models.DateTimeField('改名时间', default=_username_mtime, editable=False)
+    objects = RandomManager()
 
     class Meta(AbstractUser.Meta):
-        ordering = ['-id']
+        ordering = ['id']
         get_latest_by = 'id'
 
     def save(self, *args, **kwargs):
@@ -78,13 +80,13 @@ class Profile(models.Model):
     nick_mtime = models.DateTimeField('改名时间', default=_nickname_mtime, editable=False)
 
     class Meta:
-        ordering = ['-user_id']
+        ordering = ['user_id']
         verbose_name = '个人资料'
         verbose_name_plural = verbose_name
         get_latest_by = 'user_id'
 
     def __str__(self):
-        return f'<Profile {self.nickname}>'
+        return self.nickname
 
     def save(self, *args, **kwargs):
         if not self.nickname:
@@ -144,6 +146,9 @@ class Region(models.Model):
         verbose_name = '行政区划'
         verbose_name_plural = verbose_name
 
+    def __str__(self):
+        return self.name
+
 
 class TokenUser:
     """
@@ -157,8 +162,11 @@ class TokenUser:
     def __init__(self, token):
         self.token = token
 
+    def __repr__(self):
+        return f'<{self.__class__.__name__}: {self}>'
+
     def __str__(self):
-        return f'TokenUser {self.id}'
+        return self.pk
 
     @cached_property
     def id(self):

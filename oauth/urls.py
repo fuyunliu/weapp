@@ -4,6 +4,7 @@ from oauth import views
 
 router = routers.DefaultRouter()
 router.register('users', views.UserViewSet, 'user')
+router.register('profiles', views.ProfileViewSet, 'profile')
 router.register('groups', views.GroupViewSet, 'group')
 urlpatterns = router.urls
 urlpatterns += [

@@ -1,17 +1,24 @@
-from django.db import models
 from django.conf import settings
-from django.utils.text import slugify
+from django.db import models
 from django.contrib.contenttypes.fields import GenericRelation
+from django.utils.text import slugify
+from markdown import markdown
+
+from commons.managers import RandomManager
 
 
 class Article(models.Model):
+    class Status(models.IntegerChoices):
+        DRAFT = 0, 'Draft'
+        PUBLISHED = 1, 'Published'
+
     title = models.CharField('标题', max_length=64)
     body = models.TextField('正文')
     body_html = models.TextField('源码')
-    draft = models.BooleanField('草稿', default=True)
+    status = models.IntegerField('状态', choices=Status.choices, default=Status.DRAFT)
     created = models.DateTimeField('创建时间', auto_now_add=True, editable=False)
     updated = models.DateTimeField('更新时间', auto_now=True, editable=False)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, max_length=255)
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -30,15 +37,16 @@ class Article(models.Model):
 
     class Meta:
         ordering = ['-created']
+        get_latest_by = 'id'
         verbose_name = '文章'
         verbose_name_plural = verbose_name
-        get_latest_by = 'id'
 
     def __str__(self):
         return self.title
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.title)
+        self.body_html = markdown(self.body, extensions=['fenced_code', 'codehilite'])
         super().save(*args, **kwargs)
 
 
@@ -57,9 +65,16 @@ class Pin(models.Model):
 
     class Meta:
         ordering = ['-created']
+        get_latest_by = 'id'
         verbose_name = '想法'
         verbose_name_plural = verbose_name
-        get_latest_by = 'id'
+
+    def __str__(self):
+        return self.body[:10]
+
+    def save(self, *args, **kwargs):
+        self.body_html = markdown(self.body, extensions=['fenced_code', 'codehilite'])
+        super().save(*args, **kwargs)
 
 
 class Category(models.Model):
@@ -71,10 +86,12 @@ class Category(models.Model):
         verbose_name='父级分类',
         null=True
     )
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, max_length=255)
+    objects = RandomManager()
 
     class Meta:
-        ordering = ['name']
+        ordering = ['id']
+        get_latest_by = 'id'
         verbose_name = '分类'
         verbose_name_plural = verbose_name
 
@@ -88,10 +105,11 @@ class Category(models.Model):
 
 class Topic(models.Model):
     name = models.CharField('名称', max_length=32, unique=True)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, max_length=255)
 
     class Meta:
-        ordering = ['name']
+        ordering = ['id']
+        get_latest_by = 'id'
         verbose_name = '话题'
         verbose_name_plural = verbose_name
 
@@ -112,10 +130,11 @@ class Tag(models.Model):
         verbose_name='父级标签',
         null=True
     )
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, max_length=255)
 
     class Meta:
-        ordering = ['name']
+        ordering = ['id']
+        get_latest_by = 'id'
         verbose_name = '标签'
         verbose_name_plural = verbose_name
 

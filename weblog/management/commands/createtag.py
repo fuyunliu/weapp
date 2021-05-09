@@ -1,4 +1,4 @@
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.db.utils import IntegrityError
 from weblog.models import Tag
 from faker import Faker
@@ -14,11 +14,12 @@ class Command(BaseCommand):
         faker = Faker()
         for _ in range(int(count)):
             fields = {
-                'name': faker.name()
+                'name': faker.word()
             }
             try:
                 tag = Tag.objects.create(**fields)
                 tag.save()
             except IntegrityError:
-                CommandError('创建失败！')
-            self.stdout.write(self.style.SUCCESS(f'Successfully create tag {fields["name"]}'))
+                self.stdout.write(self.style.ERROR('创建失败！'))
+            else:
+                self.stdout.write(self.style.SUCCESS(f'Successfully create tag {tag.name}'))

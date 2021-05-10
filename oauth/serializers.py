@@ -16,7 +16,7 @@ from commons.fields.serializers import (
     PasswordField,
     TimesinceField
 )
-from oauth import login_user, user_can_authenticate
+from oauth import login_user, logout_user, user_can_authenticate
 from oauth.email import DigitsEmail
 from oauth.models import Profile
 
@@ -38,8 +38,8 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     date_joined = TimesinceField(read_only=True)
-    profile = serializers.HyperlinkedRelatedField(lookup_field='pk', view_name='profile-detail', read_only=True)
     nickname = serializers.ReadOnlyField(source='profile.nickname')
+    profile = serializers.HyperlinkedRelatedField(view_name='profile-detail', read_only=True)
     articles = serializers.HyperlinkedRelatedField(many=True, view_name='article-detail', read_only=True)
 
     class Meta:
@@ -104,6 +104,12 @@ class UserDeleteSerializer(serializers.Serializer):
         if not self.instance.check_password(value):
             raise ValidationError(Messages.WRONG_PASSWORD)
         return value
+
+    def validate(self, attrs):
+        request = self.context['request']
+        if self.instance == request.user:
+            logout_user(request)
+        return attrs
 
 
 class ActivateSerializer(serializers.ModelSerializer):

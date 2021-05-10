@@ -1,3 +1,4 @@
+import textwrap
 from django.conf import settings
 from django.db import models
 from django.contrib.contenttypes.fields import GenericRelation
@@ -35,6 +36,8 @@ class Article(models.Model):
     comments = GenericRelation('comments.Comment')
     likes = GenericRelation('likes.Like')
 
+    objects = RandomManager()
+
     class Meta:
         ordering = ['-created']
         get_latest_by = 'id'
@@ -63,6 +66,8 @@ class Pin(models.Model):
     comments = GenericRelation('comments.Comment')
     likes = GenericRelation('likes.Like')
 
+    objects = RandomManager()
+
     class Meta:
         ordering = ['-created']
         get_latest_by = 'id'
@@ -70,7 +75,7 @@ class Pin(models.Model):
         verbose_name_plural = verbose_name
 
     def __str__(self):
-        return self.body[:10]
+        return textwrap.shorten(self.body, width=100, placeholder='...')
 
     def save(self, *args, **kwargs):
         self.body_html = markdown(self.body, extensions=['fenced_code', 'codehilite'])
@@ -79,6 +84,7 @@ class Pin(models.Model):
 
 class Category(models.Model):
     name = models.CharField('名称', max_length=32, unique=True)
+    desc = models.TextField('描述', blank=True)
     parent = models.ForeignKey(
         'self',
         on_delete=models.CASCADE,
@@ -87,6 +93,7 @@ class Category(models.Model):
         null=True
     )
     slug = models.SlugField(unique=True, max_length=255)
+
     objects = RandomManager()
 
     class Meta:
@@ -105,7 +112,10 @@ class Category(models.Model):
 
 class Topic(models.Model):
     name = models.CharField('名称', max_length=32, unique=True)
+    desc = models.TextField('描述', blank=True)
     slug = models.SlugField(unique=True, max_length=255)
+
+    objects = RandomManager()
 
     class Meta:
         ordering = ['id']
@@ -123,6 +133,7 @@ class Topic(models.Model):
 
 class Tag(models.Model):
     name = models.CharField('名称', max_length=32, unique=True)
+    desc = models.TextField('描述', blank=True)
     parent = models.ForeignKey(
         'self',
         on_delete=models.CASCADE,
@@ -131,6 +142,8 @@ class Tag(models.Model):
         null=True
     )
     slug = models.SlugField(unique=True, max_length=255)
+
+    objects = RandomManager()
 
     class Meta:
         ordering = ['id']

@@ -3,15 +3,16 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from weblog.models import Article, Pin, Category, Topic, Tag
 from weblog.serializers import ArticleSerializer, PinSerializer, CategorySerializer, TopicSerializer, TagSerializer
+from commons.permissions import IsOwnerOrReadOnly
 
 
 class ArticleViewSet(viewsets.ModelViewSet):
     queryset = Article.objects.all()
     serializer_class = ArticleSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsOwnerOrReadOnly]
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user, category=Category.objects.random().first())
+        serializer.save(author=self.request.user)
 
     @action(detail=True, renderer_classes=[renderers.StaticHTMLRenderer])
     def highlight(self, request, *args, **kwargs):
@@ -22,7 +23,10 @@ class ArticleViewSet(viewsets.ModelViewSet):
 class PinViewSet(viewsets.ModelViewSet):
     queryset = Pin.objects.all()
     serializer_class = PinSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsOwnerOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
 
     @action(detail=True, renderer_classes=[renderers.StaticHTMLRenderer])
     def highlight(self, request, *args, **kwargs):

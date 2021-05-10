@@ -150,3 +150,13 @@ USER_ID_CLAIM = 'user_id'
 
 # https://docs.djangoproject.com/zh-hans/3.2/topics/email/
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# User can like model
+LIKES_MODELS = {
+    "weblog.article": {
+        # 'serializer': 'weblog.serializers.ArticleSerializer'
+    },
+    "weblog.pin": {
+        # 'serializer': 'weblog.serializers.PinSerializer'
+    }
+}

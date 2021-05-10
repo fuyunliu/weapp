@@ -8,10 +8,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from commons.permissions import IsMeOrAdmin
-from oauth import serializers, logout_user
+from oauth import serializers
+from oauth.email import DestroyUserEmail
 from oauth.models import Profile
 from oauth.tasks import destroy_user
-from oauth.email import DestroyUserEmail
 
 UserModel = get_user_model()
 
@@ -34,7 +34,7 @@ class TokenViewSet(views.APIView):
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
     def delete(self, request, *args, **kwargs):
-        logout_user(request)
+        serializers.logout_user(request)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_permissions(self):
@@ -134,8 +134,6 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.get_object()
         serializer = self.get_serializer(user, data=request.data)
         serializer.is_valid(raise_exception=True)
-        if user == request.user:
-            logout_user(request)
         self.perform_destroy(user)
         DestroyUserEmail(request).send([user.email])
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -191,7 +189,7 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(methods=['post'], detail=True, url_path='set-email')
     def set_email(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid()
+        serializer.is_valid(raise_exception=True)
         email = serializer.validated_data['email']
         user = self.get_object()
         user.email = email
@@ -201,7 +199,7 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(methods=['post'], detail=True, url_path='set-phone')
     def set_phone(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid()
+        serializer.is_valid(raise_exception=True)
         phone = serializer.validated_data['phone']
         user = self.get_object()
         user.phone = phone

@@ -5,7 +5,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.utils.text import slugify
 from markdown import markdown
 
-from commons.managers import RandomManager
+from commons.managers import GenericManager
 
 
 class Article(models.Model):
@@ -36,7 +36,7 @@ class Article(models.Model):
     comments = GenericRelation('comments.Comment')
     likes = GenericRelation('likes.Like')
 
-    objects = RandomManager()
+    objects = GenericManager()
 
     class Meta:
         ordering = ['-created']
@@ -66,7 +66,7 @@ class Pin(models.Model):
     comments = GenericRelation('comments.Comment')
     likes = GenericRelation('likes.Like')
 
-    objects = RandomManager()
+    objects = GenericManager()
 
     class Meta:
         ordering = ['-created']
@@ -94,7 +94,7 @@ class Category(models.Model):
     )
     slug = models.SlugField(unique=True, max_length=255)
 
-    objects = RandomManager()
+    objects = GenericManager()
 
     class Meta:
         ordering = ['id']
@@ -115,7 +115,7 @@ class Topic(models.Model):
     desc = models.TextField('描述', blank=True)
     slug = models.SlugField(unique=True, max_length=255)
 
-    objects = RandomManager()
+    objects = GenericManager()
 
     class Meta:
         ordering = ['id']
@@ -143,7 +143,7 @@ class Tag(models.Model):
     )
     slug = models.SlugField(unique=True, max_length=255)
 
-    objects = RandomManager()
+    objects = GenericManager()
 
     class Meta:
         ordering = ['id']

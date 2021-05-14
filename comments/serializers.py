@@ -3,19 +3,20 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from likes.models import Like
+from comments.models import Comment
 from commons.constants import Messages
 from commons.fields.serializers import ContentTypeNaturalKeyField, GenericRelatedField
 
 
-class LikeSerializer(serializers.HyperlinkedModelSerializer):
-    sender = serializers.ReadOnlyField(source='sender.username')
+class CommentSerializer(serializers.HyperlinkedModelSerializer):
+    author = serializers.ReadOnlyField(source='author.username')
     content_type = ContentTypeNaturalKeyField(label='内容类型')
-    content_object = GenericRelatedField(action_models='LIKE_MODELS', read_only=True)
+    content_object = GenericRelatedField(action_models='COMMENT_MODELS', read_only=True)
 
     class Meta:
-        model = Like
+        model = Comment
         fields = '__all__'
+        read_only_fields = ['body_html', 'enabled']
 
     def validate(self, attrs):
         content_type = attrs['content_type']
@@ -34,5 +35,5 @@ class LikeSerializer(serializers.HyperlinkedModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        like, _ = Like.objects.get_or_create(**validated_data)
-        return like
+        comment, _ = Comment.objects.create(**validated_data)
+        return comment

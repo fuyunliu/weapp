@@ -25,7 +25,7 @@ class Command(BaseCommand):
                 article.author = user_model.objects.random().first()
                 article.category = Category.objects.random().first()
                 article.save()
-            except IntegrityError:
-                self.stdout.write(self.style.ERROR('创建失败！'))
+            except IntegrityError as e:
+                self.stdout.write(self.style.ERROR(str(e)))
             else:
                 self.stdout.write(self.style.SUCCESS(f'Successfully create article {article.pk}'))

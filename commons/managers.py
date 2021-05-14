@@ -3,7 +3,8 @@ from django.db import models, transaction
 from django.db.models import Count, Max, Min
 
 
-class RandomQuerySet(models.QuerySet):
+class GenericQuerySet(models.QuerySet):
+
     def random(self, amount=1):
         with transaction.atomic(using=self.db):
             q = self.aggregate(min_id=Min('id'), max_id=Max('id'), count=Count('id'))
@@ -16,9 +17,10 @@ class RandomQuerySet(models.QuerySet):
             return self.order_by('pk').filter(pk__gt=pk)[:amount]
 
 
-class RandomManager(models.Manager):
+class GenericManager(models.Manager):
+
     def random(self, *args, **kwargs):
         return self.get_queryset().random(*args, **kwargs)
 
     def get_queryset(self):
-        return RandomQuerySet(self.model, using=self._db)
+        return GenericQuerySet(self.model, using=self._db)

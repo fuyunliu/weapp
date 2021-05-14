@@ -4,14 +4,15 @@ from django.core.validators import RegexValidator
 from django.contrib.contenttypes.models import ContentType
 from django.utils.module_loading import import_string
 from rest_framework.exceptions import ValidationError
-from rest_framework.fields import Field, CharField
+from rest_framework.fields import CharField, ReadOnlyField
+from rest_framework.serializers import BaseSerializer
 from rest_framework.relations import RelatedField
 
 from commons.fields.phonenumber import PhoneNumber
 from commons.utils import timesince
 
 
-class TimesinceField(Field):
+class TimesinceField(ReadOnlyField):
     def to_representation(self, value):
         return timesince(value)
 
@@ -27,17 +28,17 @@ class PhoneField(CharField):
 
 
 class PasswordField(CharField):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         kwargs.setdefault('style', {})
         kwargs['style']['input_type'] = 'password'
         kwargs['write_only'] = True
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
 
 
-class DigitsField(CharField):
-    def __init__(self, *args, **kwargs):
+class PhoneCodeField(CharField):
+    def __init__(self, **kwargs):
         kwargs['validators'] = [RegexValidator(regex=r'^\d{6}$', message='Please enter 6 digits.')]
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
 
 
 class ContentTypeNaturalKeyField(CharField):
@@ -60,9 +61,14 @@ class ContentTypeNaturalKeyField(CharField):
         return ct
 
 
-class LikedObjectRelatedField(RelatedField):
+class GenericRelatedField(RelatedField):
+
+    def __init__(self, action_models, **kwargs):
+        self.action_models = action_models
+        super().__init__(**kwargs)
+
     def to_representation(self, value):
-        for model_path, configuration in getattr(settings, 'LIKES_MODELS', {}).items():
+        for model_path, configuration in getattr(settings, self.action_models, {}).items():
             serializer_path = configuration.get('serializer')
 
             if not serializer_path:
@@ -76,3 +82,11 @@ class LikedObjectRelatedField(RelatedField):
                 return serializer_class(instance=value, context=self.context).data
 
         return str(value)
+
+
+class GenericModelSerializer(BaseSerializer):
+    def to_internal_value(self, data):
+        pass
+
+    def to_representation(self, instance):
+        pass

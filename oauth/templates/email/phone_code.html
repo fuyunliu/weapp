@@ -1,0 +1,19 @@
+{% block subject %}
+Please verify your login code
+{% endblock %}
+
+{% block text_body %}
+Your Login code: {{ digits }}
+
+This code can be used to login to your account. We never ask it for anything else. Do not give it to anyone.
+
+If you didn't request this code by trying to login on another device, simply ignore this message.
+{% endblock %}
+
+{% block html_body %}
+<b>Your Login code: {{ digits }}</b>
+
+<p>This code can be used to login to your account. We never ask it for anything else. Do not give it to anyone.</p>
+
+<p>If you didn't request this code by trying to login on another device, simply ignore this message.</p>
+{% endblock %}

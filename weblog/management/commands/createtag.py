@@ -13,13 +13,11 @@ class Command(BaseCommand):
         count = options['count'][0]
         faker = Faker()
         for _ in range(int(count)):
-            fields = {
-                'name': faker.word()
-            }
+            fields = {'name': faker.word()}
             try:
                 tag = Tag.objects.create(**fields)
                 tag.save()
-            except IntegrityError:
-                self.stdout.write(self.style.ERROR('创建失败！'))
+            except IntegrityError as e:
+                self.stdout.write(self.style.ERROR(str(e)))
             else:
                 self.stdout.write(self.style.SUCCESS(f'Successfully create tag {tag.name}'))

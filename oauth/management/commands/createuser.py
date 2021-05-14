@@ -27,7 +27,7 @@ class Command(BaseCommand):
             }
             try:
                 user = user_model.objects.create_user(**fields)
-            except IntegrityError:
-                self.stdout.write(self.style.ERROR('创建失败！'))
+            except IntegrityError as e:
+                self.stdout.write(self.style.ERROR(str(e)))
             else:
                 self.stdout.write(self.style.SUCCESS(f'Successfully create user {user.username}'))

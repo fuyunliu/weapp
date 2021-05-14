@@ -2,11 +2,11 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from django.utils.functional import cached_property
-from django.contrib.auth.models import AbstractUser, Group, Permission
+from django.contrib.auth.models import AbstractUser, Group, Permission, UserManager as DjangoUserManager
 from django.db.models.signals import post_save
 from django.db.models.manager import EmptyManager
 
-from commons.managers import RandomManager
+from commons.managers import GenericQuerySet
 from commons.fields.models import PhoneField
 from commons.utils import get_random_name
 
@@ -19,6 +19,15 @@ def _nickname_mtime():
     return timezone.now() - settings.NICKNAME_MODIFY_TIMEDELTA
 
 
+class UserManager(DjangoUserManager):
+
+    def random(self, *args, **kwargs):
+        return self.get_queryset().random(*args, **kwargs)
+
+    def get_queryset(self):
+        return GenericQuerySet(self.model, using=self._db)
+
+
 class User(AbstractUser):
     phone = PhoneField('手机号码', blank=True)
     # stars=我关注的人 fans=关注我的人
@@ -29,7 +38,8 @@ class User(AbstractUser):
     #     verbose_name='我关注的人'
     # )
     name_mtime = models.DateTimeField('改名时间', default=_username_mtime, editable=False)
-    objects = RandomManager()
+
+    objects = UserManager()
 
     class Meta(AbstractUser.Meta):
         ordering = ['id']
@@ -125,11 +135,11 @@ post_save.connect(create_profile, sender=User)
 
 class Region(models.Model):
     class Level(models.IntegerChoices):
-        PROVINCE = 1, 'Province'
-        CITY = 2, 'City'
-        COUNTRY = 3, 'Country'
-        TOWN = 4, 'Town'
-        VILLAGE = 5, 'Village'
+        PROVINCE = 1, '省'
+        CITY = 2, '市'
+        COUNTRY = 3, '县'
+        TOWN = 4, '镇'
+        VILLAGE = 5, '村'
 
     name = models.CharField('名称', max_length=32)
     code = models.CharField('代码', max_length=32)

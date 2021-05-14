@@ -15,14 +15,12 @@ class Command(BaseCommand):
         faker = Faker()
         user_model = get_user_model()
         for _ in range(int(count)):
-            fields = {
-                'body': faker.text()
-            }
+            fields = {'body': faker.text()}
             try:
                 pin = Pin(**fields)
                 pin.author = user_model.objects.random().first()
                 pin.save()
-            except IntegrityError:
-                self.stdout.write(self.style.ERROR('创建失败！'))
+            except IntegrityError as e:
+                self.stdout.write(self.style.ERROR(str(e)))
             else:
                 self.stdout.write(self.style.SUCCESS(f'Successfully create pin {pin.pk}'))

@@ -1,6 +1,13 @@
-Django
-djangorestframework
 celery
 PyJWT
-phonenumberslite
 pendulum
+Pygments
+Markdown
+redis
+Django
+djangorestframework
+django-redis
+django-filter
+diango-cors-headers
+psycopg2-binary
+phonenumberslite

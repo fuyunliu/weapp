@@ -39,7 +39,7 @@ class TokenAuthentication(BaseAuthentication):
             # 用户每次登入生成 token，并将 token_id 记录到 session 中
             # 因为下面的续期规则，避免用户继续使用旧的token
             token_id = payload['jti']
-            assert 'token_id' in request.session, Messages.TOKEN_NOT_EXIST
+            assert 'token_id' in request.session, Messages.TOKEN_NOT_FOUND
             assert token_id == request.session['token_id'], Messages.TOKEN_MISMATCH
 
             from_time = payload['iat']  # 签发时间
@@ -66,7 +66,7 @@ class TokenAuthentication(BaseAuthentication):
         try:
             user = self.user_model.objects.get(**{settings.USER_ID_FIELD: user_id})
         except self.user_model.DoesNotExist:
-            raise AuthenticationFailed(Messages.USER_NOT_EXIST)
+            raise AuthenticationFailed(Messages.USER_NOT_FOUND)
 
         if not user.is_active:
             raise AuthenticationFailed(Messages.USER_INACTIVE)

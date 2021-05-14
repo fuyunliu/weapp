@@ -3,18 +3,18 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from likes.models import Like
+from follows.models import Follow
 from commons.constants import Messages
 from commons.fields.serializers import ContentTypeNaturalKeyField, GenericRelatedField
 
 
-class LikeSerializer(serializers.HyperlinkedModelSerializer):
+class FollowSerializer(serializers.HyperlinkedModelSerializer):
     sender = serializers.ReadOnlyField(source='sender.username')
     content_type = ContentTypeNaturalKeyField(label='内容类型')
-    content_object = GenericRelatedField(action_models='LIKE_MODELS', read_only=True)
+    content_object = GenericRelatedField(action_models='FOLLOW_MODELS', read_only=True)
 
     class Meta:
-        model = Like
+        model = Follow
         fields = '__all__'
 
     def validate(self, attrs):
@@ -34,5 +34,5 @@ class LikeSerializer(serializers.HyperlinkedModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        like, _ = Like.objects.get_or_create(**validated_data)
-        return like
+        follow, _ = Follow.objects.get_or_create(**validated_data)
+        return follow

@@ -8,7 +8,7 @@ router.register('profiles', views.ProfileViewSet, 'profile')
 router.register('groups', views.GroupViewSet, 'group')
 urlpatterns = router.urls
 urlpatterns += [
-    path('token/', views.TokenViewSet.as_view(), name='token'),
-    path('digits/', views.SendDigitsView.as_view(), name='digits'),
+    path('token/', views.TokenAPIView.as_view(), name='token'),
+    path('code/', views.PhoneCodeView.as_view(), name='code'),
     path('oauth/', include('rest_framework.urls', namespace='rest_framework')),
 ]

@@ -3,10 +3,18 @@ from rest_framework import permissions
 
 class IsOwnerOrReadOnly(permissions.IsAuthenticated):
     def has_object_permission(self, request, view, obj):
+        owner = getattr(obj, 'author', None) or getattr(obj, 'sender', None)
         return (
             request.method in permissions.SAFE_METHODS or
-            obj.author == request.user
+            owner == request.user
         )
+
+
+class IsOwnerOrAdmin(permissions.IsAuthenticated):
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        owner = getattr(obj, 'user', None)
+        return user.is_staff or owner == user
 
 
 class IsMeOrAdmin(permissions.IsAuthenticated):

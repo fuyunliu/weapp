@@ -20,8 +20,8 @@ class Command(BaseCommand):
                 like.sender = user_model.objects.random().first()
                 like.content_object = Article.objects.random().first()
                 like.save()
-            except IntegrityError:
-                self.stdout.write(self.style.ERROR('创建失败！'))
+            except IntegrityError as e:
+                self.stdout.write(self.style.ERROR(str(e)))
             else:
                 self.stdout.write(self.style.SUCCESS(f'Successfully create like {like.pk}'))
 
@@ -31,7 +31,7 @@ class Command(BaseCommand):
                 like.sender = user_model.objects.random().first()
                 like.content_object = Pin.objects.random().first()
                 like.save()
-            except IntegrityError:
-                self.stdout.write(self.style.ERROR('创建失败！'))
+            except IntegrityError as e:
+                self.stdout.write(self.style.ERROR(str(e)))
             else:
                 self.stdout.write(self.style.SUCCESS(f'Successfully create like {like.pk}'))

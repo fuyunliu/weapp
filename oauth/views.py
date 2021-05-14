@@ -2,22 +2,41 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.utils import timezone
-from rest_framework import permissions
 from rest_framework import viewsets, status, views
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
-from commons.permissions import IsMeOrAdmin
-from oauth import serializers
+from commons.permissions import IsMeOrAdmin, IsOwnerOrAdmin
+from oauth import logout_user
 from oauth.email import DestroyUserEmail
 from oauth.models import Profile
+from oauth.serializers import (
+    GroupSerializer,
+    ProfileSerializer,
+    UserSerializer,
+    UserCreateSerializer,
+    UserDestroySerializer,
+    PhoneCodeSerializer,
+    EmailCodeSerializer,
+    SetPhoneSerializer,
+    SetEmailSerializer,
+    SetUsernameSerializer,
+    SetNicknameSerializer,
+    SetPasswordSerializer,
+    PhoneAndCodeSerializer,
+    EmailAndCodeSerializer,
+    PhoneAndPasswordSerializer,
+    EmailAndPasswordSerializer,
+    UsernameAndPasswordSerializer
+)
 from oauth.tasks import destroy_user
 
 UserModel = get_user_model()
 
 
-class TokenViewSet(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
+class TokenAPIView(views.APIView):
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -26,20 +45,20 @@ class TokenViewSet(views.APIView):
         token = request.auth
         token.set_exp()
         data = {'access': str(token)}
-        return Response(data, status=status.HTTP_200_OK)
+        return Response(data)
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        return Response(serializer.validated_data)
 
     def delete(self, request, *args, **kwargs):
-        serializers.logout_user(request)
+        logout_user(request)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_permissions(self):
         if self.request.method == 'POST':
-            self.permission_classes = [permissions.AllowAny]
+            self.permission_classes = [AllowAny]
         return super().get_permissions()
 
     def get_serializer(self, *args, **kwargs):
@@ -53,23 +72,23 @@ class TokenViewSet(views.APIView):
         if self.request.method == 'POST':
             if 'digits' in data:
                 if 'phone' in data:
-                    return serializers.PhoneAndDigitsSerializer
+                    return PhoneAndCodeSerializer
                 elif 'email' in data:
-                    return serializers.EmailAndDigitsSerializer
+                    return EmailAndCodeSerializer
             elif 'password' in data:
                 if 'username' in data:
-                    return serializers.UsernameAndPasswordSerializer
+                    return UsernameAndPasswordSerializer
                 elif 'email' in data:
-                    return serializers.EmailAndPasswordSerializer
+                    return EmailAndPasswordSerializer
                 elif 'phone' in data:
-                    return serializers.PhoneAndPasswordSerializer
+                    return PhoneAndPasswordSerializer
             else:
-                return serializers.PhoneAndDigitsSerializer
-        return serializers.PhoneAndDigitsSerializer
+                return PhoneAndCodeSerializer
+        return PhoneAndCodeSerializer
 
 
-class SendDigitsView(views.APIView):
-    permission_classes = [permissions.AllowAny]
+class PhoneCodeView(views.APIView):
+    permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -86,23 +105,22 @@ class SendDigitsView(views.APIView):
         data = self.request.data
         if self.request.method == 'POST':
             if 'phone' in data:
-                return serializers.SendPhoneDigitsSerializer
+                return PhoneCodeSerializer
             elif 'email' in data:
-                return serializers.SendEmailDigitsSerializer
+                return EmailCodeSerializer
             else:
-                return serializers.SendPhoneDigitsSerializer
-        return serializers.SendPhoneDigitsSerializer
+                return PhoneCodeSerializer
+        return PhoneCodeSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = UserModel.objects.all()
-    serializer_class = serializers.UserSerializer
+    serializer_class = UserSerializer
     permission_classes = [IsMeOrAdmin]
 
     def get_queryset(self):
         user = self.request.user
         queryset = super().get_queryset()
-        # 管理员可以看到所有人员，普通用户仅能看到自己
         if self.action == 'list' and not user.is_staff:
             queryset = queryset.filter(pk=user.pk)
         return queryset
@@ -112,21 +130,21 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         action_perms = {
-            'create': [permissions.IsAdminUser],
-            'activation': [permissions.IsAdminUser]
+            'create': [IsAdminUser],
+            'activation': [IsAdminUser]
         }
         self.permission_classes = action_perms.get(self.action, self.permission_classes)
         return super().get_permissions()
 
     def get_serializer_class(self):
         action_seres = {
-            'create': serializers.UserCreateSerializer,
-            'destroy': serializers.UserDeleteSerializer,
-            'set_username': serializers.SetUsernameSerializer,
-            'set_nickname': serializers.SetNicknameSerializer,
-            'set_password': serializers.SetPasswordSerializer,
-            'set_email': serializers.SetEmailSerializer,
-            'set_phone': serializers.SetPhoneSerializer
+            'create': UserCreateSerializer,
+            'destroy': UserDestroySerializer,
+            'set_email': SetEmailSerializer,
+            'set_phone': SetPhoneSerializer,
+            'set_username': SetUsernameSerializer,
+            'set_nickname': SetNicknameSerializer,
+            'set_password': SetPasswordSerializer
         }
         return action_seres.get(self.action, self.serializer_class)
 
@@ -207,23 +225,51 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['get'], detail=True)
+    def profile(self, request, *args, **kwargs):
+        user = self.get_object()
+        return Response(ProfileSerializer(user.profile).data)
+
+    @action(methods=['get'], detail=True)
     def articles(self, request, *args, **kwargs):
-        pass
+        from weblog.serializers import ArticleSerializer
+        user = self.get_object()
+        queryset = user.articles.all()
+        kws = {'context': {'request': self.request}, 'many': True}
+        return Response(ArticleSerializer(queryset, **kws).data)
 
     @action(methods=['get'], detail=True)
     def pins(self, request, *args, **kwargs):
-        pass
+        from weblog.serializers import PinSerializer
+        user = self.get_object()
+        queryset = user.pins.all()
+        kws = {'context': {'request': self.request}, 'many': True}
+        return Response(PinSerializer(queryset, **kws).data)
 
     @action(methods=['get'], detail=True)
     def likes(self, request, *args, **kwargs):
-        # 使用filter过滤用户喜欢的文章或者想法等等
-        # 避免制造过深的URL
-        pass
+        from likes.serializers import LikeSerializer
+        user = self.get_object()
+        queryset = user.likes.all()
+
+        model_name = self.request.query_params.get('model_name')
+        if model_name is not None:
+            queryset = queryset.filter(content_type__model=model_name)
+
+        kws = {'context': {'request': self.request}, 'many': True}
+        return Response(LikeSerializer(queryset, **kws).data)
 
     @action(methods=['get'], detail=True)
     def comments(self, request, *args, **kwargs):
-        # 使用filter过滤对文章的评论或者对想法的评论
-        pass
+        from comments.serializers import CommentSerializer
+        user = self.get_object()
+        queryset = user.comments.all()
+
+        model_name = self.request.query_params.get('model_name')
+        if model_name is not None:
+            queryset = queryset.filter(content_type__model=model_name)
+
+        kws = {'context': {'request': self.request}, 'many': True}
+        return Response(CommentSerializer(queryset, **kws).data)
 
     @action(methods=['get'], detail=True)
     def collections(self, request, *args, **kwargs):
@@ -244,11 +290,18 @@ class UserViewSet(viewsets.ModelViewSet):
 
 class ProfileViewSet(viewsets.ModelViewSet):
     queryset = Profile.objects.all()
-    serializer_class = serializers.ProfileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ProfileSerializer
+    permission_classes = [IsOwnerOrAdmin]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = super().get_queryset()
+        if self.action == 'list' and not user.is_staff:
+            queryset = queryset.filter(pk=user.pk)
+        return queryset
 
 
 class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all()
-    serializer_class = serializers.GroupSerializer
-    permission_classes = [permissions.IsAdminUser]
+    serializer_class = GroupSerializer
+    permission_classes = [IsAdminUser]

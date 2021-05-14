@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     'oauth.apps.OAuthConfig',
     'weblog.apps.WeblogConfig',
     'comments.apps.CommentsConfig',
+    'follows.apps.FollowsConfig',
     'likes.apps.LikesConfig',
     'rest_framework'
 ]
@@ -55,12 +56,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'weapp.wsgi.application'
 
-
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 DATABASES = config['DATABASES']
 
-# Default primary key field type.
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
@@ -77,7 +76,6 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
 
 # https://docs.djangoproject.com/en/3.1/topics/i18n/
 LANGUAGE_CODE = 'zh-hans'
@@ -112,16 +110,15 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 10
 }
 
-
 USERNAME_RANDOM_NAMESPACE = 'uid'
 PHONENUMBER_DEFAULT_REGION = 'CN'
 USERNAME_MODIFY_TIMEDELTA = timedelta(days=365)
 NICKNAME_MODIFY_TIMEDELTA = timedelta(days=90)
-ACCESS_DIGITS_LIFETIME = timedelta(minutes=10)
 DESTROY_USER_TIMEDELTA = timedelta(days=14)
 
 # https://github.com/SimpleJWT/django-rest-framework-simplejwt#settings
 ACCESS_TOKEN_LIFETIME = timedelta(minutes=10)
+ACCESS_CODE_LIFETIME = timedelta(minutes=10)
 USER_ID_FIELD = 'id'
 USER_ID_CLAIM = 'user_id'
 
@@ -151,8 +148,7 @@ USER_ID_CLAIM = 'user_id'
 # https://docs.djangoproject.com/zh-hans/3.2/topics/email/
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# User can like model
-LIKES_MODELS = {
+LIKE_MODELS = {
     "weblog.article": {
         # 'serializer': 'weblog.serializers.ArticleSerializer'
     },

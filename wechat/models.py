@@ -19,3 +19,6 @@ class Message(models.Model):
         db_index=True
     )
     created = models.DateTimeField('创建时间', auto_now_add=True, editable=False, db_index=True)
+
+    def is_owned(self, user):
+        return self.sender == user

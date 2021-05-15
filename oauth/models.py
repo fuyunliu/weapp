@@ -98,6 +98,9 @@ class Profile(models.Model):
     def __str__(self):
         return self.nickname
 
+    def is_owned(self, user):
+        return self.user == user
+
     def save(self, *args, **kwargs):
         if not self.nickname:
             self.set_nickname()

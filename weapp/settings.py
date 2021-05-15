@@ -19,6 +19,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'oauth.apps.OAuthConfig',
     'weblog.apps.WeblogConfig',
+    'collects.apps.CollectsConfig',
     'comments.apps.CommentsConfig',
     'follows.apps.FollowsConfig',
     'likes.apps.LikesConfig',
@@ -107,7 +108,8 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10
+    'HTML_SELECT_CUTOFF': 10,
+    'PAGE_SIZE': 10,
 }
 
 USERNAME_RANDOM_NAMESPACE = 'uid'

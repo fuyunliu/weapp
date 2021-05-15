@@ -9,6 +9,6 @@ router.register('groups', views.GroupViewSet, 'group')
 urlpatterns = router.urls
 urlpatterns += [
     path('token/', views.TokenAPIView.as_view(), name='token'),
-    path('code/', views.PhoneCodeView.as_view(), name='code'),
+    path('phonecode/', views.PhoneCodeView.as_view(), name='phonecode'),
     path('oauth/', include('rest_framework.urls', namespace='rest_framework')),
 ]

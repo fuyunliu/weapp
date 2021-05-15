@@ -24,7 +24,7 @@ class FollowSerializer(serializers.HyperlinkedModelSerializer):
 
         model_path = f'{content_type.app_label}.{content_type.model}'
         if model_path not in getattr(settings, action_models, {}):
-            raise ValidationError({'content_type': Messages.CT_NOT_ALLOWED})
+            raise ValidationError({'content_type': Messages.CONTENT_TYPE_NOT_ALLOWED})
 
         try:
             content_type.get_object_for_this_type(pk=object_id)

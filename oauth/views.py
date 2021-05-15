@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.utils import timezone
-from rest_framework import viewsets, status, views
+from rest_framework import mixins, viewsets, status, views
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -288,7 +288,12 @@ class UserViewSet(viewsets.ModelViewSet):
         pass
 
 
-class ProfileViewSet(viewsets.ModelViewSet):
+class ProfileViewSet(
+    mixins.RetrieveModelMixin,
+    mixins.ListModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet
+):
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
     permission_classes = [IsOwnerOrAdmin]
@@ -299,6 +304,16 @@ class ProfileViewSet(viewsets.ModelViewSet):
         if self.action == 'list' and not user.is_staff:
             queryset = queryset.filter(pk=user.pk)
         return queryset
+
+    def get_instance(self):
+        user = self.request.user
+        profile = user.profile
+        return profile
+
+    @action(['get'], detail=False)
+    def me(self, request, *args, **kwargs):
+        self.get_object = self.get_instance
+        return self.retrieve(request, *args, **kwargs)
 
 
 class GroupViewSet(viewsets.ModelViewSet):

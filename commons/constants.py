@@ -17,7 +17,8 @@ class Messages:
     EMAIL_EXIST = 'Email already exists.'
     PHONE_EXIST = 'Phone already exists'
     OBJECT_NOT_FOUND = 'Object does not exist.'
-    CT_NOT_ALLOWED = 'Not allowed content type.'
+    CONTENT_TYPE_NOT_ALLOWED = 'Not allowed content type.'
+    COLLECTION_NOT_ALLOWED = "This collection doesn't belong to you."
 
 
 class CacheKeySet:

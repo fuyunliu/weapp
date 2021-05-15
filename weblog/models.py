@@ -52,6 +52,9 @@ class Article(models.Model):
         self.body_html = markdown(self.body, extensions=['fenced_code', 'codehilite'])
         super().save(*args, **kwargs)
 
+    def is_owned(self, user):
+        return self.author == user
+
 
 class Pin(models.Model):
     body = models.TextField('正文')
@@ -80,6 +83,9 @@ class Pin(models.Model):
     def save(self, *args, **kwargs):
         self.body_html = markdown(self.body, extensions=['fenced_code', 'codehilite'])
         super().save(*args, **kwargs)
+
+    def is_owned(self, user):
+        return self.author == user
 
 
 class Category(models.Model):

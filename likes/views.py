@@ -29,6 +29,8 @@ class LikeViewSet(
         if model_name is not None:
             queryset = queryset.filter(content_type__model=model_name)
 
+        queryset = queryset.select_related('sender')
+
         return queryset
 
     def perform_create(self, serializer):

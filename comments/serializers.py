@@ -25,7 +25,7 @@ class CommentSerializer(serializers.HyperlinkedModelSerializer):
 
         model_path = f'{content_type.app_label}.{content_type.model}'
         if model_path not in getattr(settings, action_models, {}):
-            raise ValidationError({'content_type': Messages.CT_NOT_ALLOWED})
+            raise ValidationError({'content_type': Messages.CONTENT_TYPE_NOT_ALLOWED})
 
         try:
             content_type.get_object_for_this_type(pk=object_id)
@@ -35,5 +35,5 @@ class CommentSerializer(serializers.HyperlinkedModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        comment, _ = Comment.objects.create(**validated_data)
+        comment = Comment.objects.create(**validated_data)
         return comment

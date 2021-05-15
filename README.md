@@ -1,6 +1,6 @@
-# django-weblog
+# django-weapp
 
-基于`Django3`和`Django-Rest-Framework`的博客系统
+基于`Django3`和`Django-Rest-Framework`的社交系统
 
 响应分类
 

@@ -36,3 +36,6 @@ class Like(models.Model):
 
     def __str__(self):
         return f'{self.sender} -> {self.content_object}'
+
+    def is_owned(self, user):
+        return self.sender == user

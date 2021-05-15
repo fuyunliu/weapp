@@ -39,3 +39,6 @@ class Comment(models.Model):
     def save(self, *args, **kwargs):
         self.body_html = markdown(self.body, extensions=['fenced_code', 'codehilite'])
         super().save(*args, **kwargs)
+
+    def is_owned(self, user):
+        return self.author == user

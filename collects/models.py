@@ -3,6 +3,8 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 
+from commons.managers import GenericManager
+
 
 class Collection(models.Model):
     name = models.CharField('名称', max_length=32)
@@ -14,11 +16,19 @@ class Collection(models.Model):
         verbose_name='用户'
     )
 
+    objects = GenericManager()
+
     class Meta:
         ordering = ['id']
         get_latest_by = 'id'
         verbose_name = '收藏夹'
         verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.name
+
+    def is_owned(self, user):
+        return self.user == user
 
 
 class CollectManager(models.Manager):
@@ -37,12 +47,6 @@ class Collect(models.Model):
         related_name='collects',
         verbose_name='收藏夹'
     )
-    sender = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='collects',
-        verbose_name='发起者'
-    )
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, verbose_name='内容类型')
     object_id = models.PositiveIntegerField(verbose_name='对象主键')
     content_object = GenericForeignKey(ct_field='content_type', fk_field='object_id')
@@ -55,7 +59,10 @@ class Collect(models.Model):
         get_latest_by = 'id'
         verbose_name = '收藏'
         verbose_name_plural = verbose_name
-        unique_together = [['collection', 'sender', 'content_type', 'object_id']]
+        unique_together = [['collection', 'content_type', 'object_id']]
 
     def __str__(self):
-        return f'{self.sender} -> {self.content_object}'
+        return f'{self.collection} -> {self.content_object}'
+
+    def is_owned(self, user):
+        return self.collection.user == user

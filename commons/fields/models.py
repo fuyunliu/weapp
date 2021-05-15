@@ -1,5 +1,5 @@
 from django.core import checks
-from django.db import models
+from django.db.models.fields import CharField
 from django.utils.encoding import force_str
 
 from commons.fields import forms
@@ -29,7 +29,7 @@ class PhoneDescriptor:
         instance.__dict__[self.field.name] = PhoneNumber.to_python(value, region=self.field.region)
 
 
-class PhoneField(models.CharField):
+class PhoneField(CharField):
     attr_class = PhoneNumber
     descriptor_class = PhoneDescriptor
     default_validators = [PhoneNumber.validate_phone]

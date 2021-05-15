@@ -94,7 +94,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class UserDestroySerializer(serializers.Serializer):
-    password = PasswordField()
+    password = PasswordField(label='密码')
 
     def validate_password(self, value):
         if not self.instance.check_password(value):
@@ -109,8 +109,8 @@ class UserDestroySerializer(serializers.Serializer):
 
 
 class PhoneCodeSerializer(serializers.Serializer):
-    phone = PhoneField()
-    tape = serializers.ChoiceField(choices=['gettoken', 'setpasswd', 'setemail', 'setphone'])
+    phone = PhoneField(label='手机号')
+    tape = serializers.ChoiceField(choices=['gettoken', 'setpasswd', 'setemail', 'setphone'], label='类型')
 
     def validate(self, attrs):
         phone_code = utils.get_random_number()
@@ -122,8 +122,8 @@ class PhoneCodeSerializer(serializers.Serializer):
 
 
 class EmailCodeSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    tape = serializers.ChoiceField(choices=['gettoken', 'setpasswd', 'setemail', 'setphone'])
+    email = serializers.EmailField(label='邮箱')
+    tape = serializers.ChoiceField(choices=['gettoken', 'setpasswd', 'setemail', 'setphone'], label='类型')
 
     def validate(self, attrs):
         phone_code = utils.get_random_number()
@@ -171,13 +171,13 @@ class SetNicknameSerializer(serializers.ModelSerializer):
 
 
 class SetPasswordSerializer(serializers.Serializer):
-    new_password = PasswordField()
-    re_password = PasswordField()
-    phone_code = PhoneCodeField()
+    new_password = PasswordField(label='新密码')
+    new_password2 = PasswordField(label='确认新密码')
+    phone_code = PhoneCodeField(label='验证码')
 
     def validate(self, attrs):
-        if attrs['new_password'] != attrs.pop('re_password'):
-            raise ValidationError({'re_password': Messages.PASSWORD_MISMATCH})
+        if attrs['new_password'] != attrs.pop('new_password2'):
+            raise ValidationError({'new_password2': Messages.PASSWORD_MISMATCH})
 
         phone_code = attrs.pop('phone_code')
         ekey = CacheKeySet.PHONE_CODE.format(field='email', value=self.instance.email, tape='setpasswd')
@@ -196,8 +196,8 @@ class SetPasswordSerializer(serializers.Serializer):
 
 
 class SetEmailSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    phone_code = PhoneCodeField()
+    email = serializers.EmailField(label='新邮箱')
+    phone_code = PhoneCodeField(label='验证码')
 
     def validate_email(self, value):
         if UserModel.objects.filter(email=value).exists():
@@ -214,8 +214,8 @@ class SetEmailSerializer(serializers.Serializer):
 
 
 class SetPhoneSerializer(serializers.Serializer):
-    phone = PhoneField()
-    phone_code = PhoneCodeField()
+    phone = PhoneField(label='新手机号')
+    phone_code = PhoneCodeField(label='验证码')
 
     def validate_phone(self, value):
         if UserModel.objects.filter(phone=value).exists():
@@ -232,8 +232,8 @@ class SetPhoneSerializer(serializers.Serializer):
 
 
 class PhoneAndCodeSerializer(serializers.Serializer):
-    phone = PhoneField()
-    phone_code = PhoneCodeField()
+    phone = PhoneField(label='手机号')
+    phone_code = PhoneCodeField(label='验证码')
 
     default_error_messages = {
         'inactive_user': Messages.USER_INACTIVE
@@ -259,8 +259,8 @@ class PhoneAndCodeSerializer(serializers.Serializer):
 
 
 class EmailAndCodeSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    phone_code = PhoneCodeField()
+    email = serializers.EmailField(label='邮箱')
+    phone_code = PhoneCodeField(label='验证码')
 
     default_error_messages = {
         'inactive_user': Messages.USER_INACTIVE
@@ -286,8 +286,8 @@ class EmailAndCodeSerializer(serializers.Serializer):
 
 
 class PhoneAndPasswordSerializer(serializers.Serializer):
-    phone = PhoneField()
-    password = PasswordField()
+    phone = PhoneField(label='手机号')
+    password = PasswordField(label='密码')
 
     default_error_messages = {
         'user_not_exist': Messages.USER_NOT_FOUND,
@@ -315,8 +315,8 @@ class PhoneAndPasswordSerializer(serializers.Serializer):
 
 
 class EmailAndPasswordSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    password = PasswordField()
+    email = serializers.EmailField(label='邮箱')
+    password = PasswordField(label='密码')
 
     default_error_messages = {
         'user_not_exist': Messages.USER_NOT_FOUND,
@@ -343,8 +343,8 @@ class EmailAndPasswordSerializer(serializers.Serializer):
 
 
 class UsernameAndPasswordSerializer(serializers.Serializer):
-    username = serializers.CharField()
-    password = PasswordField()
+    username = serializers.CharField(label='用户名')
+    password = PasswordField(label='密码')
 
     default_error_messages = {
         'user_not_exist': Messages.USER_NOT_FOUND,

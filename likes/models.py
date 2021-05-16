@@ -6,7 +6,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 
 class LikeManager(models.Manager):
 
-    def is_liked(self, obj, user):
+    def is_liked(self, user, obj):
         if not user.is_authenticated:
             return False
 

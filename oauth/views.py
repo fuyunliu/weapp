@@ -234,16 +234,16 @@ class UserViewSet(viewsets.ModelViewSet):
         from weblog.serializers import ArticleSerializer
         user = self.get_object()
         queryset = user.articles.all()
-        kws = {'context': {'request': self.request}, 'many': True}
-        return Response(ArticleSerializer(queryset, **kws).data)
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(ArticleSerializer(queryset, **params).data)
 
     @action(methods=['get'], detail=True)
     def pins(self, request, *args, **kwargs):
         from weblog.serializers import PinSerializer
         user = self.get_object()
         queryset = user.pins.all()
-        kws = {'context': {'request': self.request}, 'many': True}
-        return Response(PinSerializer(queryset, **kws).data)
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(PinSerializer(queryset, **params).data)
 
     @action(methods=['get'], detail=True)
     def likes(self, request, *args, **kwargs):
@@ -255,8 +255,8 @@ class UserViewSet(viewsets.ModelViewSet):
         if model_name is not None:
             queryset = queryset.filter(content_type__model=model_name)
 
-        kws = {'context': {'request': self.request}, 'many': True}
-        return Response(LikeSerializer(queryset, **kws).data)
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(LikeSerializer(queryset, **params).data)
 
     @action(methods=['get'], detail=True)
     def comments(self, request, *args, **kwargs):
@@ -268,12 +268,29 @@ class UserViewSet(viewsets.ModelViewSet):
         if model_name is not None:
             queryset = queryset.filter(content_type__model=model_name)
 
-        kws = {'context': {'request': self.request}, 'many': True}
-        return Response(CommentSerializer(queryset, **kws).data)
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(CommentSerializer(queryset, **params).data)
 
     @action(methods=['get'], detail=True)
     def collections(self, request, *args, **kwargs):
-        pass
+        from collects.serializers import CollectionSerializer
+        user = self.get_object()
+        queryset = user.collections.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(CollectionSerializer(queryset, **params).data)
+
+    @action(methods=['get'], detail=True)
+    def collects(self, request, *args, **kwargs):
+        from collects.serializers import CollectSerializer
+        user = self.get_object()
+        queryset = user.collects.all()
+
+        model_name = self.request.query_params.get('model_name')
+        if model_name is not None:
+            queryset = queryset.filter(content_type__model=model_name)
+
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(CollectSerializer(queryset, **params).data)
 
     @action(methods=['get'], detail=True)
     def stars(self, request, *args, **kwargs):

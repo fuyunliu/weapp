@@ -2,7 +2,8 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from django.utils.functional import cached_property
-from django.contrib.auth.models import AbstractUser, Group, Permission, UserManager as DjangoUserManager
+from django.contrib.auth.models import AbstractUser, Group, Permission, UserManager
+from django.contrib.contenttypes.models import ContentType
 from django.db.models.signals import post_save
 from django.db.models.manager import EmptyManager
 
@@ -19,15 +20,6 @@ def _nickname_mtime():
     return timezone.now() - settings.NICKNAME_MODIFY_TIMEDELTA
 
 
-class UserManager(DjangoUserManager):
-
-    def random(self, *args, **kwargs):
-        return self.get_queryset().random(*args, **kwargs)
-
-    def get_queryset(self):
-        return GenericQuerySet(self.model, using=self._db)
-
-
 class User(AbstractUser):
     phone = PhoneField('手机号码', blank=True)
     # stars=我关注的人 fans=关注我的人
@@ -39,7 +31,7 @@ class User(AbstractUser):
     # )
     name_mtime = models.DateTimeField('改名时间', default=_username_mtime, editable=False)
 
-    objects = UserManager()
+    objects = UserManager.from_queryset(GenericQuerySet)()
 
     class Meta(AbstractUser.Meta):
         ordering = ['id']

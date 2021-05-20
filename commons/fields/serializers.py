@@ -5,7 +5,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils.module_loading import import_string
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import CharField, ReadOnlyField
-from rest_framework.serializers import BaseSerializer
 from rest_framework.relations import RelatedField
 
 from commons.fields.phonenumber import PhoneNumber
@@ -13,6 +12,7 @@ from commons.utils import timesince
 
 
 class TimesinceField(ReadOnlyField):
+
     def to_representation(self, value):
         return timesince(value)
 
@@ -28,6 +28,7 @@ class PhoneField(CharField):
 
 
 class PasswordField(CharField):
+
     def __init__(self, **kwargs):
         kwargs.setdefault('style', {})
         kwargs['style']['input_type'] = 'password'
@@ -36,6 +37,7 @@ class PasswordField(CharField):
 
 
 class PhoneCodeField(CharField):
+
     def __init__(self, **kwargs):
         kwargs['validators'] = [RegexValidator(regex=r'^\d{6}$', message='Please enter 6 digits.')]
         super().__init__(**kwargs)
@@ -82,11 +84,3 @@ class GenericRelatedField(RelatedField):
                 return serializer_class(instance=value, context=self.context).data
 
         return str(value)
-
-
-class GenericModelSerializer(BaseSerializer):
-    def to_internal_value(self, data):
-        pass
-
-    def to_representation(self, instance):
-        pass

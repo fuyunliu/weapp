@@ -4,6 +4,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from markdown import markdown
 
+from commons.managers import ManagerDescriptor, GenericReversedManager
+
 
 class Comment(models.Model):
     body = models.TextField('正文')
@@ -26,6 +28,9 @@ class Comment(models.Model):
     object_id = models.PositiveIntegerField(verbose_name='对象主键')
     content_object = GenericForeignKey(ct_field='content_type', fk_field='object_id')
     enabled = models.BooleanField('是否显示', default=True)
+
+    # 喜欢评论的人
+    likers = ManagerDescriptor(manager=GenericReversedManager, through='likes.Like', target='oauth.User')
 
     class Meta:
         ordering = ['id']

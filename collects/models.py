@@ -3,7 +3,7 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 
-from commons.managers import GenericManager
+from commons.managers import GenericQuerySet, ManagerDescriptor, GenericRelatedManager, GenericReversedManager
 
 
 class Collection(models.Model):
@@ -16,7 +16,19 @@ class Collection(models.Model):
         verbose_name='用户'
     )
 
-    objects = GenericManager()
+    objects = GenericQuerySet.as_manager()
+
+    # 收藏夹收藏的文章
+    articles = ManagerDescriptor(manager=GenericRelatedManager, through='collects.Collect', target='weblog.Article')
+
+    # 收藏夹收藏的想法
+    pins = ManagerDescriptor(manager=GenericRelatedManager, through='collects.Collect', target='weblog.Pin')
+
+    # 喜欢收藏夹的人
+    likers = ManagerDescriptor(manager=GenericReversedManager, through='likes.Like', target='oauth.User')
+
+    # 关注收藏夹的人
+    followers = ManagerDescriptor(manager=GenericReversedManager, through='follows.Follow', target='oauth.User')
 
     class Meta:
         ordering = ['id']

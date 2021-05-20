@@ -1,4 +1,5 @@
 from rest_framework import mixins, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from collects.models import Collect, Collection
@@ -23,6 +24,38 @@ class CollectionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @action(methods=['get'], detail=True)
+    def articles(self, request, *args, **kwargs):
+        from weblog.serializers import ArticleSerializer
+        collection = self.get_object()
+        queryset = collection.articles.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(ArticleSerializer(queryset, **params).data)
+
+    @action(methods=['get'], detail=True)
+    def pins(self, request, *args, **kwargs):
+        from weblog.serializers import PinSerializer
+        collection = self.get_object()
+        queryset = collection.pins.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(PinSerializer(queryset, **params).data)
+
+    @action(methods=['get'], detail=True)
+    def likers(self, request, *args, **kwargs):
+        from oauth.serializers import UserSerializer
+        collection = self.get_object()
+        queryset = collection.likers.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(UserSerializer(queryset, **params).data)
+
+    @action(methods=['get'], detail=True)
+    def followers(self, request, *args, **kwargs):
+        from oauth.serializers import UserSerializer
+        collection = self.get_object()
+        queryset = collection.followers.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(UserSerializer(queryset, **params).data)
 
 
 class CollectViewSet(

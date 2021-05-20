@@ -5,7 +5,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.utils.text import slugify
 from markdown import markdown
 
-from commons.managers import GenericManager
+from commons.managers import GenericQuerySet, ManagerDescriptor, GenericReversedManager
 
 
 class Article(models.Model):
@@ -36,7 +36,13 @@ class Article(models.Model):
     comments = GenericRelation('comments.Comment')
     likes = GenericRelation('likes.Like')
 
-    objects = GenericManager()
+    objects = GenericQuerySet.as_manager()
+
+    # 喜欢文章的人
+    likers = ManagerDescriptor(manager=GenericReversedManager, through='likes.Like', target='oauth.User')
+
+    # 收藏文章的收藏夹
+    collections = ManagerDescriptor(manager=GenericReversedManager, through='collects.Collect', target='collects.Collection')
 
     class Meta:
         ordering = ['-created']
@@ -69,7 +75,13 @@ class Pin(models.Model):
     comments = GenericRelation('comments.Comment')
     likes = GenericRelation('likes.Like')
 
-    objects = GenericManager()
+    objects = GenericQuerySet.as_manager()
+
+    # 喜欢想法的人
+    likers = ManagerDescriptor(manager=GenericReversedManager, through='likes.Like', target='oauth.User')
+
+    # 收藏想法的收藏夹
+    collections = ManagerDescriptor(manager=GenericReversedManager, through='collects.Collecct', target='collects.Collection')
 
     class Meta:
         ordering = ['-created']
@@ -100,7 +112,10 @@ class Category(models.Model):
     )
     slug = models.SlugField(unique=True, max_length=255)
 
-    objects = GenericManager()
+    objects = GenericQuerySet.as_manager()
+
+    # 关注分类的人
+    followers = ManagerDescriptor(manager=GenericReversedManager, through='follows.Follow', target='oauth.User')
 
     class Meta:
         ordering = ['id']
@@ -121,7 +136,10 @@ class Topic(models.Model):
     desc = models.TextField('描述', blank=True)
     slug = models.SlugField(unique=True, max_length=255)
 
-    objects = GenericManager()
+    objects = GenericQuerySet.as_manager()
+
+    # 关注话题的人
+    followers = ManagerDescriptor(manager=GenericReversedManager, through='follows.Follow', target='oauth.User')
 
     class Meta:
         ordering = ['id']
@@ -149,7 +167,7 @@ class Tag(models.Model):
     )
     slug = models.SlugField(unique=True, max_length=255)
 
-    objects = GenericManager()
+    objects = GenericQuerySet.as_manager()
 
     class Meta:
         ordering = ['id']

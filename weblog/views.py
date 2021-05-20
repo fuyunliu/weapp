@@ -16,10 +16,26 @@ class ArticleViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    @action(detail=True, renderer_classes=[renderers.StaticHTMLRenderer])
+    @action(methods=['get'], detail=True, renderer_classes=[renderers.StaticHTMLRenderer])
     def highlight(self, request, *args, **kwargs):
         article = self.get_object()
         return Response(article.body_html)
+
+    @action(methods=['get'], detail=True)
+    def likers(self, request, *args, **kwargs):
+        from oauth.serializers import UserSerializer
+        article = self.get_object()
+        queryset = article.likers.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(UserSerializer(queryset, **params).data)
+
+    @action(methods=['get'], detail=True)
+    def collections(self, request, *args, **kwargs):
+        from collects.serializers import CollectionSerializer
+        article = self.get_object()
+        queryset = article.collections.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(CollectionSerializer(queryset, **params).data)
 
 
 class PinViewSet(viewsets.ModelViewSet):
@@ -30,10 +46,26 @@ class PinViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    @action(detail=True, renderer_classes=[renderers.StaticHTMLRenderer])
+    @action(methods=['get'], detail=True, renderer_classes=[renderers.StaticHTMLRenderer])
     def highlight(self, request, *args, **kwargs):
         pin = self.get_object()
         return Response(pin.body_html)
+
+    @action(methods=['get'], detail=True)
+    def likers(self, request, *args, **kwargs):
+        from oauth.serializers import UserSerializer
+        pin = self.get_object()
+        queryset = pin.likers.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(UserSerializer(queryset, **params).data)
+
+    @action(methods=['get'], detail=True)
+    def collections(self, request, *args, **kwargs):
+        from collects.serializers import CollectionSerializer
+        pin = self.get_object()
+        queryset = pin.collections.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(CollectionSerializer(queryset, **params).data)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -41,11 +73,27 @@ class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
     permission_classes = [IsAuthenticated]
 
+    @action(methods=['get'], detail=True)
+    def followers(self, request, *args, **kwargs):
+        from oauth.serializers import UserSerializer
+        category = self.get_object()
+        queryset = category.followers.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(UserSerializer(queryset, **params).data)
+
 
 class TopicViewSet(viewsets.ModelViewSet):
     queryset = Topic.objects.all()
     serializer_class = TopicSerializer
     permission_classes = [IsAuthenticated]
+
+    @action(methods=['get'], detail=True)
+    def followers(self, request, *args, **kwargs):
+        from oauth.serializers import UserSerializer
+        topic = self.get_object()
+        queryset = topic.followers.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(UserSerializer(queryset, **params).data)
 
 
 class TagViewSet(viewsets.ModelViewSet):

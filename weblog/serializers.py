@@ -22,7 +22,7 @@ class ArticleSerializer(serializers.ModelSerializer):
     def get_is_liked(self, obj):
         request = self.context['request']
         user = request.user
-        return Like.objects.is_liked(obj, user)
+        return Like.objects.is_liked(user, obj)
 
 
 class PinSerializer(serializers.ModelSerializer):
@@ -43,7 +43,7 @@ class PinSerializer(serializers.ModelSerializer):
     def get_is_liked(self, obj):
         request = self.context['request']
         user = request.user
-        return Like.objects.is_liked(obj, user)
+        return Like.objects.is_liked(user, obj)
 
 
 class CategorySerializer(serializers.ModelSerializer):

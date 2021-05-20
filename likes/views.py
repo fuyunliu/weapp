@@ -11,7 +11,7 @@ class LikeViewSet(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet
 ):
-    queryset = Like.objects.all()
+    queryset = Like.objects.all().select_related('sender', 'content_type')
     serializer_class = LikeSerializer
     permission_classes = [IsOwnerOrReadOnly]
 

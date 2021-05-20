@@ -11,7 +11,7 @@ class FollowViewSet(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet
 ):
-    queryset = Follow.objects.all()
+    queryset = Follow.objects.all().select_related('sender', 'content_type')
     serializer_class = FollowSerializer
     permission_classes = [IsOwnerOrReadOnly]
 

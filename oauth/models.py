@@ -1,14 +1,14 @@
-from django.db import models
 from django.conf import settings
+from django.contrib.auth.models import AbstractUser, Group, Permission, UserManager as _UserManager
+from django.contrib.contenttypes.models import ContentType
+from django.db import models
+from django.db.models.manager import EmptyManager
+from django.db.models.signals import post_save
 from django.utils import timezone
 from django.utils.functional import cached_property
-from django.contrib.auth.models import AbstractUser, Group, Permission, UserManager
-from django.contrib.contenttypes.models import ContentType
-from django.db.models.signals import post_save
-from django.db.models.manager import EmptyManager
 
-from commons.managers import GenericQuerySet
 from commons.fields.models import PhoneField
+from commons.managers import GenericQuerySet, ManagerDescriptor, GenericRelatedManager, GenericReversedManager
 from commons.utils import get_random_name
 
 
@@ -20,18 +20,54 @@ def _nickname_mtime():
     return timezone.now() - settings.NICKNAME_MODIFY_TIMEDELTA
 
 
+class UserManager(_UserManager):
+
+    def random(self, amount=1):
+        return self.get_queryset().random(amount=amount)
+
+    def get_queryset(self):
+        return GenericQuerySet(self.model, using=self._db)
+
+
 class User(AbstractUser):
     phone = PhoneField('手机号码', blank=True)
-    # stars=我关注的人 fans=关注我的人
+    # stars=关注 fans=粉丝
     # stars = models.ManyToManyField(
     #     'self',
     #     related_name='fans',
     #     symmetrical=False, # 非对称关系
-    #     verbose_name='我关注的人'
+    #     verbose_name='关注'
     # )
     name_mtime = models.DateTimeField('改名时间', default=_username_mtime, editable=False)
 
-    objects = UserManager.from_queryset(GenericQuerySet)()
+    objects = UserManager()
+
+    # 我关注的人
+    following = ManagerDescriptor(manager=GenericRelatedManager, through='follows.Follow', target='oauth.User')
+
+    # 关注我的人
+    followers = ManagerDescriptor(manager=GenericReversedManager, through='follows.Follow', target='oauth.User')
+
+    # 我喜欢的收藏夹
+    liking_collections = ManagerDescriptor(manager=GenericRelatedManager, through='likes.Like', target='collects.Collection')
+
+    # 我关注的收藏夹
+    following_collections = ManagerDescriptor(manager=GenericRelatedManager, through='follows.Follow', target='collects.Collection')
+
+    # 我喜欢的评论
+    liking_comments = ManagerDescriptor(manager=GenericRelatedManager, through='likes.Like', target='comments.Comment')
+
+    # 我喜欢的文章
+    liking_articles = ManagerDescriptor(manager=GenericRelatedManager, through='likes.Like', target='weblog.Article')
+
+    # 我喜欢的想法
+    liking_pins = ManagerDescriptor(manager=GenericRelatedManager, through='likes.Like', target='weblog.Pin')
+
+    # 我关注的分类
+    following_categories = ManagerDescriptor(manager=GenericRelatedManager, through='follows.Follow', target='weblog.Category')
+
+    # 我关注的话题
+    following_topics = ManagerDescriptor(manager=GenericRelatedManager, through='follows.Follow', target='weblog.Topic')
 
     class Meta(AbstractUser.Meta):
         ordering = ['id']
@@ -83,9 +119,9 @@ class Profile(models.Model):
 
     class Meta:
         ordering = ['user_id']
+        get_latest_by = 'user_id'
         verbose_name = '个人资料'
         verbose_name_plural = verbose_name
-        get_latest_by = 'user_id'
 
     def __str__(self):
         return self.nickname

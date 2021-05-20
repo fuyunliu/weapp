@@ -19,6 +19,7 @@ class Messages:
     OBJECT_NOT_FOUND = 'Object does not exist.'
     CONTENT_TYPE_NOT_ALLOWED = 'Not allowed content type.'
     COLLECTION_NOT_ALLOWED = "This collection doesn't belong to you."
+    QUESTION_NOT_ALLOWED = "This question doesn't belong to you."
 
 
 class CacheKeySet:

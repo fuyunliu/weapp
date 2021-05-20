@@ -1,4 +1,6 @@
 from rest_framework import mixins, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from comments.models import Comment
 from comments.serializers import CommentSerializer
 from commons.permissions import IsOwnerOrReadOnly
@@ -11,7 +13,7 @@ class CommentViewSet(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet
 ):
-    queryset = Comment.objects.all()
+    queryset = Comment.objects.all().select_related('author', 'content_type')
     serializer_class = CommentSerializer
     permission_classes = [IsOwnerOrReadOnly]
 
@@ -35,3 +37,11 @@ class CommentViewSet(
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    @action(methods=['get'], detail=True)
+    def likers(self, request, *args, **kwargs):
+        from oauth.serializers import UserSerializer
+        comment = self.get_object()
+        queryset = comment.likers.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(UserSerializer(queryset, **params).data)

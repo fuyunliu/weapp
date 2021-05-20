@@ -27,12 +27,17 @@ class FollowSerializer(serializers.HyperlinkedModelSerializer):
             raise ValidationError({'content_type': Messages.CONTENT_TYPE_NOT_ALLOWED})
 
         try:
-            content_type.get_object_for_this_type(pk=object_id)
+            obj = content_type.get_object_for_this_type(pk=object_id)
         except ObjectDoesNotExist:
             raise ValidationError({'object_id': Messages.OBJECT_NOT_FOUND})
+        else:
+            attrs['instance'] = obj
 
         return attrs
 
     def create(self, validated_data):
+        # sender = validated_data['sender']
+        # instance = validated_data['instance']
+        # sender.stars.add(instance)
         follow, _ = Follow.objects.get_or_create(**validated_data)
         return follow

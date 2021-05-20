@@ -20,7 +20,7 @@ class Command(BaseCommand):
             fields = {'name': faker.word(), 'desc': faker.text()}
             try:
                 collection = Collection(**fields)
-                collection.user = user_model.objects.random().first()
+                collection.owner = user_model.objects.random().first()
                 collection.save()
             except IntegrityError as e:
                 self.stdout.write(self.style.ERROR(str(e)))

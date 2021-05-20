@@ -1,8 +1,28 @@
 from django.db import models
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from markdown import markdown
+
+from commons.managers import ManagerDescriptor, GenericReversedManager
+
+
+def get_sentinel_user():
+    user, _ = get_user_model().objects.get_or_create(username='deleted')
+    return user
+
+
+def get_sentinel_comment():
+    user = get_sentinel_user()
+    comment = Comment.objects.filter(author=user).first()
+    if comment is not None:
+        return comment
+    comment = Comment(body='Comment has been deleted.')
+    comment.author = user
+    comment.content_object = user
+    comment.save()
+    return comment
 
 
 class Comment(models.Model):
@@ -11,13 +31,13 @@ class Comment(models.Model):
     created = models.DateTimeField('创建时间', auto_now_add=True, editable=False)
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET(get_sentinel_user),
         related_name='comments',
         verbose_name='作者'
     )
     parent = models.ForeignKey(
         'self',
-        on_delete=models.CASCADE,
+        on_delete=models.SET(get_sentinel_comment),
         related_name='children',
         verbose_name='父级评论',
         null=True
@@ -26,6 +46,9 @@ class Comment(models.Model):
     object_id = models.PositiveIntegerField(verbose_name='对象主键')
     content_object = GenericForeignKey(ct_field='content_type', fk_field='object_id')
     enabled = models.BooleanField('是否显示', default=True)
+
+    # 喜欢评论的人
+    likers = ManagerDescriptor(manager=GenericReversedManager, through='likes.Like', target='oauth.User')
 
     class Meta:
         ordering = ['id']

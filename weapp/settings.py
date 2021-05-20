@@ -9,6 +9,8 @@ DEBUG = config['DEBUG']
 
 ALLOWED_HOSTS = []
 
+INTERNAL_IPS = ['127.0.0.1', 'localhost']
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -17,16 +19,19 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'debug_toolbar',
     'oauth.apps.OAuthConfig',
     'weblog.apps.WeblogConfig',
     'collects.apps.CollectsConfig',
     'comments.apps.CommentsConfig',
     'follows.apps.FollowsConfig',
     'likes.apps.LikesConfig',
-    'rest_framework'
+    'polls.apps.PollsConfig',
 ]
 
 MIDDLEWARE = [
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     # 'oauth.middleware.TokenMiddleware',  # Wrapped SessionMiddleware

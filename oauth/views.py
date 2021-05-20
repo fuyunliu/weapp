@@ -227,7 +227,8 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(methods=['get'], detail=True)
     def profile(self, request, *args, **kwargs):
         user = self.get_object()
-        return Response(ProfileSerializer(user.profile).data)
+        params = {'context': {'request': self.request}}
+        return Response(ProfileSerializer(user.profile, **params).data)
 
     @action(methods=['get'], detail=True)
     def articles(self, request, *args, **kwargs):
@@ -246,17 +247,8 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(PinSerializer(queryset, **params).data)
 
     @action(methods=['get'], detail=True)
-    def likes(self, request, *args, **kwargs):
-        from likes.serializers import LikeSerializer
-        user = self.get_object()
-        queryset = user.likes.all()
-
-        model_name = self.request.query_params.get('model_name')
-        if model_name is not None:
-            queryset = queryset.filter(content_type__model=model_name)
-
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(LikeSerializer(queryset, **params).data)
+    def polls(self, request, *args, **kwargs):
+        pass
 
     @action(methods=['get'], detail=True)
     def comments(self, request, *args, **kwargs):
@@ -280,29 +272,74 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(CollectionSerializer(queryset, **params).data)
 
     @action(methods=['get'], detail=True)
-    def collects(self, request, *args, **kwargs):
-        from collects.serializers import CollectSerializer
+    def following(self, request, *args, **kwargs):
         user = self.get_object()
-        queryset = user.collects.all()
+        queryset = user.following.all()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
-        model_name = self.request.query_params.get('model_name')
-        if model_name is not None:
-            queryset = queryset.filter(content_type__model=model_name)
+    @action(methods=['get'], detail=True)
+    def followers(self, request, *args, **kwargs):
+        user = self.get_object()
+        queryset = user.followers.all()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
+    @action(methods=['get'], detail=True, url_path='liking-collections')
+    def liking_collections(self, request, *args, **kwargs):
+        from collects.serializers import CollectionSerializer
+        user = self.get_object()
+        queryset = user.liking_collections.all()
         params = {'context': {'request': self.request}, 'many': True}
-        return Response(CollectSerializer(queryset, **params).data)
+        return Response(CollectionSerializer(queryset, **params).data)
 
-    @action(methods=['get'], detail=True)
-    def stars(self, request, *args, **kwargs):
-        pass
+    @action(methods=['get'], detail=True, url_path='following-collections')
+    def following_collections(self, request, *args, **kwargs):
+        from collects.serializers import CollectionSerializer
+        user = self.get_object()
+        queryset = user.following_collections.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(CollectionSerializer(queryset, **params).data)
 
-    @action(methods=['get'], detail=True)
-    def fans(self, request, *args, **kwargs):
-        pass
+    @action(methods=['get'], detail=True, url_path='liking-comments')
+    def liking_comments(self, request, *args, **kwargs):
+        from comments.serializers import CommentSerializer
+        user = self.get_object()
+        queryset = user.liking_comments.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(CommentSerializer(queryset, **params).data)
 
-    @action(methods=['get'], detail=True)
-    def polls(self, request, *args, **kwargs):
-        pass
+    @action(methods=['get'], detail=True, url_path='liking-articles')
+    def liking_articles(self, request, *args, **kwargs):
+        from weblog.serializers import ArticleSerializer
+        user = self.get_object()
+        queryset = user.liking_articles.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(ArticleSerializer(queryset, **params).data)
+
+    @action(methods=['get'], detail=True, url_path='liking-pins')
+    def liking_pins(self, request, *args, **kwargs):
+        from weblog.serializers import PinSerializer
+        user = self.get_object()
+        queryset = user.liking_pins.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(PinSerializer(queryset, **params).data)
+
+    @action(methods=['get'], detail=True, url_path='following-categories')
+    def following_categories(self, request, *args, **kwargs):
+        from weblog.serializers import CategorySerializer
+        user = self.get_object()
+        queryset = user.following_categories.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(CategorySerializer(queryset, **params).data)
+
+    @action(methods=['get'], detail=True, url_path='following-topics')
+    def following_topics(self, request, *args, **kwargs):
+        from weblog.serializers import TopicSerializer
+        user = self.get_object()
+        queryset = user.following_topics.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(TopicSerializer(queryset, **params).data)
 
 
 class ProfileViewSet(
@@ -311,7 +348,7 @@ class ProfileViewSet(
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet
 ):
-    queryset = Profile.objects.all()
+    queryset = Profile.objects.all().select_related('user')
     serializer_class = ProfileSerializer
     permission_classes = [IsOwnerOrAdmin]
 

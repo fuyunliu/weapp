@@ -3,20 +3,32 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 
-from commons.managers import GenericManager
+from commons.managers import GenericQuerySet, ManagerDescriptor, GenericRelatedManager, GenericReversedManager
 
 
 class Collection(models.Model):
     name = models.CharField('名称', max_length=32)
     desc = models.TextField('描述', blank=True)
-    user = models.ForeignKey(
+    owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='collections',
-        verbose_name='用户'
+        verbose_name='所有者'
     )
 
-    objects = GenericManager()
+    objects = GenericQuerySet.as_manager()
+
+    # 收藏夹收藏的文章
+    articles = ManagerDescriptor(manager=GenericRelatedManager, through='collects.Collect', target='weblog.Article')
+
+    # 收藏夹收藏的想法
+    pins = ManagerDescriptor(manager=GenericRelatedManager, through='collects.Collect', target='weblog.Pin')
+
+    # 喜欢收藏夹的人
+    likers = ManagerDescriptor(manager=GenericReversedManager, through='likes.Like', target='oauth.User')
+
+    # 关注收藏夹的人
+    followers = ManagerDescriptor(manager=GenericReversedManager, through='follows.Follow', target='oauth.User')
 
     class Meta:
         ordering = ['id']

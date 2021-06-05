@@ -20,6 +20,7 @@ class Messages:
     CONTENT_TYPE_NOT_ALLOWED = 'Not allowed content type.'
     COLLECTION_NOT_ALLOWED = "This collection doesn't belong to you."
     QUESTION_NOT_ALLOWED = "This question doesn't belong to you."
+    VOTE_MAX_NUM = "You can vote this question at least {0} choices."
 
 
 class CacheKeySet:

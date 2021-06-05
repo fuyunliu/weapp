@@ -110,7 +110,7 @@ class Profile(models.Model):
         primary_key=True
     )
     nickname = models.CharField('昵称', max_length=64, unique=True)
-    gender = models.IntegerField('性别', null=True, choices=Gender.choices)
+    gender = models.PositiveSmallIntegerField('性别', null=True, choices=Gender.choices)
     birthday = models.DateField('生日', null=True, blank=True)
     location = models.CharField('地区', max_length=64, blank=True)
     about_me = models.TextField('签名', blank=True)
@@ -174,7 +174,7 @@ class Region(models.Model):
 
     name = models.CharField('名称', max_length=32)
     code = models.CharField('代码', max_length=32)
-    level = models.IntegerField('级别', choices=Level.choices)
+    level = models.PositiveSmallIntegerField('级别', choices=Level.choices)
     parent = models.ForeignKey(
         'self',
         on_delete=models.CASCADE,

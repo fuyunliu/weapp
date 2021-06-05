@@ -11,7 +11,7 @@ class QuestionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Question
-        fields = ['url', 'owner', 'title', 'created', 'choices']
+        fields = ['url', 'owner', 'title', 'max_choices', 'created', 'choices']
 
 
 class ChoiceSerializer(serializers.ModelSerializer):
@@ -21,9 +21,9 @@ class ChoiceSerializer(serializers.ModelSerializer):
         fields = ['url', 'title', 'question']
 
     def validate(self, attrs):
-        question = attrs['question']
+        question = attrs.get('question')
         request = self.context['request']
-        if question.owner != request.user:
+        if question is not None and question.owner != request.user:
             raise ValidationError({'question': Messages.QUESTION_NOT_ALLOWED})
 
         return attrs
@@ -35,4 +35,17 @@ class VoteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Vote
-        fields = ['url', 'user', 'question']
+        fields = ['url', 'user', 'choice', 'question']
+
+    def validate(self, attrs):
+        choice = attrs['choice']
+        request = self.context['request']
+        vote_count = Vote.objects.filter(user=request.user, choice__question=choice.question).count()
+        if vote_count >= choice.question.max_choices:
+            raise ValidationError(Messages.VOTE_MAX_NUM.format(choice.question.max_choices))
+
+        return attrs
+
+    def create(self, validated_data):
+        vote, _ = Vote.objects.get_or_create(**validated_data)
+        return vote

@@ -62,6 +62,9 @@ class ContentTypeNaturalKeyField(CharField):
 
         return ct
 
+    def to_representation(self, value):
+        return f'{value.app_label}.{value.model}'
+
 
 class GenericRelatedField(RelatedField):
 

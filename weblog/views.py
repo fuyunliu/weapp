@@ -1,11 +1,13 @@
+from django.contrib.contenttypes.models import ContentType
 from rest_framework import viewsets, renderers
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
+from commons.permissions import IsOwnerOrReadOnly
+from likes.models import Like
 from weblog.models import Article, Pin, Category, Topic, Tag
 from weblog.serializers import ArticleSerializer, PinSerializer, CategorySerializer, TopicSerializer, TagSerializer
-from commons.permissions import IsOwnerOrReadOnly
 
 
 class ArticleViewSet(viewsets.ModelViewSet):
@@ -15,6 +17,14 @@ class ArticleViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ct = ContentType.objects.get_for_model(Article)
+        qs = Like.objects.get_user_likes(self.request.user, ct)
+        ctx['article_content_type'] = ct
+        ctx['user_like_articles'] = set(qs.values_list('object_id', flat=True))
+        return ctx
 
     @action(methods=['get'], detail=True, renderer_classes=[renderers.StaticHTMLRenderer])
     def highlight(self, request, *args, **kwargs):
@@ -45,6 +55,14 @@ class PinViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ct = ContentType.objects.get_for_model(Pin)
+        qs = Like.objects.get_user_likes(self.request.user, ct)
+        ctx['pin_content_type'] = ct
+        ctx['user_like_pins'] = set(qs.values_list('object_id', flat=True))
+        return ctx
 
     @action(methods=['get'], detail=True, renderer_classes=[renderers.StaticHTMLRenderer])
     def highlight(self, request, *args, **kwargs):

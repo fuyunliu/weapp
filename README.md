@@ -67,7 +67,6 @@ Article.objects.filter(
 )
 ```
 
-
 文章被哪些收藏夹收藏
 
 ```sql
@@ -86,7 +85,6 @@ Collection.objects.filter(
     ).values('sender_id')
 )
 ```
-
 
 收藏夹被哪些人喜欢
 
@@ -107,7 +105,6 @@ User.objects.filter(
 )
 ```
 
-
 我喜欢的收藏夹
 ```sql
 select * from collection where id in (select object_id from likes_like where content_type_id = 6 and sender_id = 2)
@@ -126,7 +123,6 @@ Collection.objects.filter(
 )
 ```
 
-
 收藏夹被哪些人关注
 ```sql
 select * from oauth_user where id in (select sender_id from follows_follow where content_type_id = 6 and object_id = 2)
@@ -144,7 +140,6 @@ User.objects.filter(
     ).values('sender_id')
 )
 ```
-
 
 我关注的收藏夹
 ```sql
@@ -184,7 +179,6 @@ User.objects.filter(
 
 ```
 
-
 我喜欢的评论
 ```sql
 select * from comments_comment where id in (select object_id from likes_like where content_type_id = 6 and sender_id = 2)
@@ -222,7 +216,6 @@ User.objects.filter(
 
 ```
 
-
 我喜欢的文章
 ```sql
 select * from article where id in (select object_id from likes_like where content_type_id = 6 and sender_id = 2)
@@ -240,7 +233,6 @@ Article.objects.filter(
     ).values('object_id')
 )
 ```
-
 
 想法被哪些人喜欢
 ```sql
@@ -261,7 +253,6 @@ User.objects.filter(
 
 ```
 
-
 我喜欢的想法
 ```sql
 select * from pin where id in (seletc object_id from likes_like where content_type_id = 6 and sender_id = 2)
@@ -279,7 +270,6 @@ Pin.objects.filter(
     ).values('object_id')
 )
 ```
-
 
 想法被哪些收藏夹收藏
 ```sql
@@ -300,8 +290,6 @@ Collection.objects.filter(
 
 ```
 
-
-
 收藏夹下收藏的想法
 ```sql
 select * from pin where id in (select object_id from collects_collect where content_type_id = 6 and sender_id = 2)
@@ -319,7 +307,6 @@ Pin.objects.filter(
     ).values('object_id')
 )
 ```
-
 
 分类被哪些人关注
 ```sql
@@ -340,7 +327,6 @@ User.objects.filter(
 
 ```
 
-
 我关注的分类
 ```sql
 select * from category where id in (select object_id from follows_follow where content_type_id = 6 and sender_id = 2)
@@ -358,7 +344,6 @@ Category.objects.filter(
     ).values('object_id')
 )
 ```
-
 
 话题被哪些人关注
 ```sql
@@ -378,7 +363,6 @@ User.objects.filter(
 )
 
 ```
-
 
 我关注的话题
 ```sql

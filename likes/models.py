@@ -12,6 +12,9 @@ class LikeManager(models.Manager):
 
         return self.filter(sender=user, content_type=ContentType.objects.get_for_model(obj), object_id=obj.pk).exists()
 
+    def get_user_likes(self, user, content_type):
+        return self.filter(sender=user, content_type=content_type)
+
 
 class Like(models.Model):
     sender = models.ForeignKey(

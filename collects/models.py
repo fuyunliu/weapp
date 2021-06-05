@@ -40,7 +40,7 @@ class Collection(models.Model):
         return self.name
 
     def is_owned(self, user):
-        return self.user == user
+        return self.owner == user
 
 
 class CollectManager(models.Manager):
@@ -77,4 +77,4 @@ class Collect(models.Model):
         return f'{self.collection} -> {self.content_object}'
 
     def is_owned(self, user):
-        return self.collection.user == user
+        return self.collection.owner == user

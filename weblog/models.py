@@ -16,7 +16,7 @@ class Article(models.Model):
     title = models.CharField('标题', max_length=64)
     body = models.TextField('正文')
     body_html = models.TextField('源码')
-    status = models.IntegerField('状态', choices=Status.choices, default=Status.DRAFT)
+    status = models.PositiveSmallIntegerField('状态', choices=Status.choices, default=Status.DRAFT)
     created = models.DateTimeField('创建时间', auto_now_add=True, editable=False)
     updated = models.DateTimeField('更新时间', auto_now=True, editable=False)
     slug = models.SlugField(unique=True, max_length=255)

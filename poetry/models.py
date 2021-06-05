@@ -6,6 +6,7 @@ from django.contrib.postgres.fields import ArrayField
 class Author(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField('名字', max_length=64)
+    dynasty = models.CharField('朝代', max_length=64)
     desc = models.TextField('描述', blank=True)
 
     class Meta:
@@ -22,7 +23,7 @@ class TangPoem(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField('标题', max_length=64)
     author = models.CharField('作者', max_length=64)
-    paragraphs = ArrayField(models.CharField(max_length=200), blank=True)
+    paragraphs = ArrayField(models.CharField(max_length=200))
 
     class Meta:
         ordering = ['id']
@@ -52,7 +53,6 @@ class SongPoem(models.Model):
 
 class SongLyric(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    title = models.CharField('标题', max_length=64)
     author = models.CharField('作者', max_length=64)
     rhythm = models.CharField('韵律', max_length=64)
     paragraphs = ArrayField(models.CharField(max_length=200), blank=True)
@@ -64,7 +64,7 @@ class SongLyric(models.Model):
         verbose_name_plural = verbose_name
 
     def __str__(self):
-        return self.title
+        return self.rhythm
 
 
 class CaoCao(models.Model):

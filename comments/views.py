@@ -31,8 +31,6 @@ class CommentViewSet(
         if model_name is not None:
             queryset = queryset.filter(content_type__mdoel=model_name)
 
-        queryset = queryset.select_related('author')
-
         return queryset
 
     def perform_create(self, serializer):

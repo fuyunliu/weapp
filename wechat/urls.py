@@ -1,6 +1,6 @@
 from rest_framework import routers
-from poetry import views
+from wechat import views
 
 router = routers.DefaultRouter()
-router.register('authors', views.AuthorViewSet, 'author')
+router.register('messages', views.MessageViewSet, 'message')
 urlpatterns = router.urls

@@ -9,7 +9,7 @@ from commons.fields.serializers import ContentTypeNaturalKeyField, GenericRelate
 
 
 class CollectionSerializer(serializers.HyperlinkedModelSerializer):
-    user = serializers.ReadOnlyField(source='user.username')
+    owner = serializers.ReadOnlyField(source='owner.username')
 
     class Meta:
         model = Collection
@@ -17,8 +17,6 @@ class CollectionSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class CollectSerializer(serializers.HyperlinkedModelSerializer):
-    # collection = serializers.ReadOnlyField(source='collection.name')
-    # sender = serializers.ReadOnlyField(source='collection.user.username')
     content_type = ContentTypeNaturalKeyField(label='内容类型')
     content_object = GenericRelatedField(action_models='COLLECT_MODELS', read_only=True)
 
@@ -41,7 +39,7 @@ class CollectSerializer(serializers.HyperlinkedModelSerializer):
 
         request = self.context['request']
         collection = attrs['collection']
-        if collection.user != request.user:
+        if collection.owner != request.user:
             raise ValidationError({'collection': Messages.COLLECTION_NOT_ALLOWED})
 
         return attrs

@@ -19,8 +19,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'rest_framework',
+    'channels',
+
     'debug_toolbar',
+    'drf_spectacular',
+
     'oauth.apps.OAuthConfig',
     'weblog.apps.WeblogConfig',
     'collects.apps.CollectsConfig',
@@ -28,6 +33,8 @@ INSTALLED_APPS = [
     'follows.apps.FollowsConfig',
     'likes.apps.LikesConfig',
     'polls.apps.PollsConfig',
+    'poetry.apps.PoetryConfig',
+    'wechat.apps.WechatConfig',
 ]
 
 MIDDLEWARE = [
@@ -113,6 +120,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'HTML_SELECT_CUTOFF': 10,
     'PAGE_SIZE': 10,
 }
@@ -161,5 +169,15 @@ LIKE_MODELS = {
     },
     "weblog.pin": {
         # 'serializer': 'weblog.serializers.PinSerializer'
+    }
+}
+
+ASGI_APPLICATION = 'weapp.routing.application'
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [('127.0.0.1', 6379)]
+        }
     }
 }

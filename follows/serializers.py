@@ -36,8 +36,5 @@ class FollowSerializer(serializers.HyperlinkedModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        # sender = validated_data['sender']
-        # instance = validated_data['instance']
-        # sender.stars.add(instance)
         follow, _ = Follow.objects.get_or_create(**validated_data)
         return follow

@@ -19,7 +19,7 @@ class Article(models.Model):
     status = models.PositiveSmallIntegerField('状态', choices=Status.choices, default=Status.DRAFT)
     created = models.DateTimeField('创建时间', auto_now_add=True, editable=False)
     updated = models.DateTimeField('更新时间', auto_now=True, editable=False)
-    slug = models.SlugField(unique=True, max_length=255)
+    slug = models.SlugField(max_length=255, unique=True, editable=False)
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -110,7 +110,7 @@ class Category(models.Model):
         verbose_name='父级分类',
         null=True
     )
-    slug = models.SlugField(unique=True, max_length=255)
+    slug = models.SlugField(max_length=255, unique=True, editable=False)
 
     objects = GenericQuerySet.as_manager()
 
@@ -132,9 +132,15 @@ class Category(models.Model):
 
 
 class Topic(models.Model):
+    creator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='topics',
+        verbose_name='创建者'
+    )
     name = models.CharField('名称', max_length=32, unique=True)
     desc = models.TextField('描述', blank=True)
-    slug = models.SlugField(unique=True, max_length=255)
+    slug = models.SlugField(max_length=255, unique=True, editable=False)
 
     objects = GenericQuerySet.as_manager()
 
@@ -154,6 +160,9 @@ class Topic(models.Model):
         self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
+    def is_owned(self, user):
+        return self.creator == user
+
 
 class Tag(models.Model):
     name = models.CharField('名称', max_length=32, unique=True)
@@ -165,7 +174,7 @@ class Tag(models.Model):
         verbose_name='父级标签',
         null=True
     )
-    slug = models.SlugField(unique=True, max_length=255)
+    slug = models.SlugField(max_length=255, unique=True, editable=False)
 
     objects = GenericQuerySet.as_manager()
 

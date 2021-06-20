@@ -21,6 +21,7 @@ urlpatterns = [
     path('wechat/', include('wechat.urls')),
     path('poetry/', include('poetry.urls')),
     path('polls/', include('polls.urls')),
+    path('taggit/', include('taggit.urls')),
     path('actions/', include(router.urls)),
 ]
 

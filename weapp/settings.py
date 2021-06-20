@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'comments.apps.CommentsConfig',
     'follows.apps.FollowsConfig',
     'likes.apps.LikesConfig',
+    'taggit.apps.TaggitConfig',
     'polls.apps.PollsConfig',
     'poetry.apps.PoetryConfig',
     'wechat.apps.WechatConfig',

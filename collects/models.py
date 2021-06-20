@@ -60,7 +60,7 @@ class Collect(models.Model):
         verbose_name='收藏夹'
     )
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, verbose_name='内容类型')
-    object_id = models.PositiveIntegerField(verbose_name='对象主键')
+    object_id = models.PositiveIntegerField(verbose_name='对象主键', db_index=True)
     content_object = GenericForeignKey(ct_field='content_type', fk_field='object_id')
     created = models.DateTimeField('创建时间', auto_now_add=True, editable=False)
 
@@ -71,7 +71,8 @@ class Collect(models.Model):
         get_latest_by = 'id'
         verbose_name = '收藏'
         verbose_name_plural = verbose_name
-        unique_together = [['collection', 'content_type', 'object_id']]
+        index_together = [['content_type', 'object_id']]
+        unique_together = [['content_type', 'object_id', 'collection']]
 
     def __str__(self):
         return f'{self.collection} -> {self.content_object}'

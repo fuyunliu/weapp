@@ -10,7 +10,7 @@ class ArticleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Article
-        fields = ['url', 'highlight', 'author', 'title', 'body', 'body_html', 'content_type', 'created', 'category', 'tags', 'topics', 'is_liked']
+        fields = '__all__'
         read_only_fields = ['body_html']
 
     def get_content_type(self, obj):
@@ -29,7 +29,7 @@ class PinSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Pin
-        fields = ['url', 'highlight', 'author', 'body', 'body_html', 'content_type', 'created', 'is_liked']
+        fields = '__all__'
         read_only_fields = ['body_html']
 
     def get_content_type(self, obj):
@@ -47,6 +47,8 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class TopicSerializer(serializers.ModelSerializer):
+    creator = serializers.ReadOnlyField(source='creator.username')
+
     class Meta:
         model = Topic
         fields = '__all__'

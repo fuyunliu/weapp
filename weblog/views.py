@@ -1,10 +1,9 @@
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import viewsets, renderers
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from commons.permissions import IsOwnerOrReadOnly
+from commons.permissions import IsOwnerOrReadOnly, IsAdminOrReadOnly
 from likes.models import Like
 from weblog.models import Article, Pin, Category, Topic, Tag
 from weblog.serializers import ArticleSerializer, PinSerializer, CategorySerializer, TopicSerializer, TagSerializer
@@ -89,7 +88,7 @@ class PinViewSet(viewsets.ModelViewSet):
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrReadOnly]
 
     @action(methods=['get'], detail=True)
     def followers(self, request, *args, **kwargs):
@@ -103,7 +102,10 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class TopicViewSet(viewsets.ModelViewSet):
     queryset = Topic.objects.all()
     serializer_class = TopicSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsOwnerOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save(creator=self.request.user)
 
     @action(methods=['get'], detail=True)
     def followers(self, request, *args, **kwargs):
@@ -117,4 +119,4 @@ class TopicViewSet(viewsets.ModelViewSet):
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrReadOnly]

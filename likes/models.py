@@ -24,7 +24,7 @@ class Like(models.Model):
         verbose_name='发起者'
     )
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, verbose_name='内容类型')
-    object_id = models.PositiveIntegerField(verbose_name='对象主键')
+    object_id = models.PositiveIntegerField(verbose_name='对象主键', db_index=True)
     content_object = GenericForeignKey(ct_field='content_type', fk_field='object_id')
     created = models.DateTimeField('创建时间', auto_now_add=True, editable=False)
 
@@ -35,7 +35,8 @@ class Like(models.Model):
         get_latest_by = 'id'
         verbose_name = '喜欢'
         verbose_name_plural = verbose_name
-        unique_together = [['sender', 'content_type', 'object_id']]
+        index_together = [['content_type', 'object_id']]
+        unique_together = [['content_type', 'object_id', 'sender']]
 
     def __str__(self):
         return f'{self.sender} -> {self.content_object}'

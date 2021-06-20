@@ -11,14 +11,14 @@ class QuestionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Question
-        fields = ['url', 'owner', 'title', 'max_choices', 'created', 'choices']
+        fields = '__all__'
 
 
 class ChoiceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Choice
-        fields = ['url', 'title', 'question']
+        fields = '__all__'
 
     def validate(self, attrs):
         question = attrs.get('question')
@@ -35,7 +35,7 @@ class VoteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Vote
-        fields = ['url', 'user', 'choice', 'question']
+        fields = '__all__'
 
     def validate(self, attrs):
         choice = attrs['choice']

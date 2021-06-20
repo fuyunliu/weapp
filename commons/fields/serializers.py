@@ -1,12 +1,15 @@
 from django.apps import apps
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import RegexValidator
 from django.contrib.contenttypes.models import ContentType
 from django.utils.module_loading import import_string
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import CharField, ReadOnlyField
 from rest_framework.relations import RelatedField
+from rest_framework.serializers import ModelSerializer
 
+from commons.constants import Messages
 from commons.fields.phonenumber import PhoneNumber
 from commons.utils import timesince
 
@@ -87,3 +90,21 @@ class GenericRelatedField(RelatedField):
                 return serializer_class(instance=value, context=self.context).data
 
         return str(value)
+
+
+class ContentTypeSerializer(ModelSerializer):
+
+    def validate(self, attrs):
+        content_type = attrs['content_type']
+        action_models = getattr(self.fields['content_type'], 'action_models')
+
+        model_path = f'{content_type.app_label}.{content_type.model}'
+        if model_path not in getattr(settings, action_models, {}):
+            raise ValidationError({'content_type': Messages.CONTENT_TYPE_NOT_ALLOWED})
+
+        try:
+            content_type.get_object_for_this_type(pk=attrs['object_id'])
+        except ObjectDoesNotExist:
+            raise ValidationError({'object_id': Messages.OBJECT_NOT_FOUND})
+
+        return attrs

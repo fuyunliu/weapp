@@ -13,7 +13,7 @@ class CommentViewSet(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet
 ):
-    queryset = Comment.objects.all().select_related('author', 'content_type')
+    queryset = Comment.objects.all().select_related('author')
     serializer_class = CommentSerializer
     permission_classes = [IsOwnerOrReadOnly]
 

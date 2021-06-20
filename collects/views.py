@@ -65,7 +65,7 @@ class CollectViewSet(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet
 ):
-    queryset = Collect.objects.all().select_related('collection__owner', 'content_type')
+    queryset = Collect.objects.all().select_related('collection__owner')
     serializer_class = CollectSerializer
     permission_classes = [IsOwnerOrReadOnly]
 

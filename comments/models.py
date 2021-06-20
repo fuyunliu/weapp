@@ -43,7 +43,7 @@ class Comment(models.Model):
         null=True
     )
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, verbose_name='内容类型')
-    object_id = models.PositiveIntegerField(verbose_name='对象主键')
+    object_id = models.PositiveIntegerField(verbose_name='对象主键', db_index=True)
     content_object = GenericForeignKey(ct_field='content_type', fk_field='object_id')
     enabled = models.BooleanField('是否显示', default=True)
 

@@ -22,7 +22,7 @@ class Message(models.Model):
         verbose_name='接收者',
         db_index=True
     )
-    created = models.DateTimeField('创建时间', auto_now_add=True, editable=False, db_index=True)
+    created = models.DateTimeField('创建时间', auto_now_add=True, editable=False)
 
     class Meta:
         ordering = ['id']

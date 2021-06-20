@@ -8,7 +8,7 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-        fields = ['url', 'sender', 'reciever', 'created', 'body']
+        fields = '__all__'
 
     def create(self, validated_data):
         message = Message.objects.create(**validated_data)

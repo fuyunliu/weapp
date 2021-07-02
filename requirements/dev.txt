@@ -1,2 +1,4 @@
 -r common.txt
 Faker
+django-debug-toolbar
+drf-spectacular

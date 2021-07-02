@@ -18,7 +18,7 @@ class Tag(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        self.slug = slugify(self.name)
+        self.slug = slugify(self.name, allow_unicode=True)
         super().save(*args, **kwargs)
 
 

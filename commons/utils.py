@@ -1,3 +1,4 @@
+import re
 import itertools
 import secrets
 import string
@@ -59,3 +60,10 @@ def make_timestamp(dt):
 
 def from_timestamp(ts):
     return make_utc(datetime.utcfromtimestamp(ts))
+
+
+def string_split(text):
+    text = text.strip()
+    if not text:
+        return []
+    return re.split(r'[;,\s]\s*', text)

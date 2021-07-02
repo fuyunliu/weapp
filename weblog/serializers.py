@@ -1,3 +1,4 @@
+from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 from weblog.models import Article, Pin, Category, Topic, Tag
 
@@ -14,11 +15,11 @@ class ArticleSerializer(serializers.ModelSerializer):
         read_only_fields = ['body_html']
 
     def get_content_type(self, obj):
-        ct = self.context['article_content_type']
+        ct = ContentType.objects.get_for_model(obj)
         return f'{ct.app_label}.{ct.model}'
 
     def get_is_liked(self, obj):
-        return obj.pk in self.context['user_like_articles']
+        return True if obj.like_id is not None else False
 
 
 class PinSerializer(serializers.ModelSerializer):
@@ -33,11 +34,11 @@ class PinSerializer(serializers.ModelSerializer):
         read_only_fields = ['body_html']
 
     def get_content_type(self, obj):
-        ct = self.context['pin_content_type']
+        ct = ContentType.objects.get_for_model(obj)
         return f'{ct.app_label}.{ct.model}'
 
     def get_is_liked(self, obj):
-        return obj.pk in self.context['user_like_pins']
+        return True if obj.like_id is not None else False
 
 
 class CategorySerializer(serializers.ModelSerializer):

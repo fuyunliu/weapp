@@ -42,6 +42,9 @@ class User(AbstractUser):
 
     objects = UserManager()
 
+    # 我的标签
+    tags = ManagerDescriptor(manager=GenericReversedManager, through='taggit.TaggedItem', target='taggit.Tag')
+
     # 我关注的人
     following = ManagerDescriptor(manager=GenericRelatedManager, through='follows.Follow', target='oauth.User')
 
@@ -77,6 +80,9 @@ class User(AbstractUser):
         if not self.username:
             self.set_username()
         super().save(*args, **kwargs)
+
+    def is_owned(self, user):
+        return self == user
 
     def set_username(self, username=None):
         def names():
@@ -126,13 +132,13 @@ class Profile(models.Model):
     def __str__(self):
         return self.nickname
 
-    def is_owned(self, user):
-        return self.user == user
-
     def save(self, *args, **kwargs):
         if not self.nickname:
             self.set_nickname()
         super().save(*args, **kwargs)
+
+    def is_owned(self, user):
+        return self.user == user
 
     def set_nickname(self, nickname=None):
         def names():

@@ -1,11 +1,24 @@
 import random
+import functools
+
 from django.apps import apps
-from django.db import models, transaction
-from django.db.models import Count, Max, Min
+from django.db import transaction
+from django.db.models.aggregates import Count, Max, Min
+from django.db.models.query import QuerySet
+from django.db.models.manager import Manager
+from django.db.models.options import Options
+from django.db.models.sql.datastructures import Join
+from django.db.models.fields.related import ForeignObject
+from django.db.models.sql.constants import LOUTER
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Case, Value, When
+from django.db.models.expressions import Col
+
+from django.db.models.fields.related import ForeignObject
 from django.contrib.contenttypes.models import ContentType
 
 
-class GenericQuerySet(models.QuerySet):
+class GenericQuerySet(QuerySet):
 
     def random(self, amount=1):
         with transaction.atomic(using=self.db):
@@ -35,7 +48,7 @@ class ManagerDescriptor:
         return self.manager(instance=instance, model=model, **self.kwargs)
 
 
-class GenericRelatedManager(models.Manager):
+class GenericRelatedManager(Manager):
     """
     动作的发出者使用这个类
     """
@@ -64,7 +77,7 @@ class GenericRelatedManager(models.Manager):
         return queryset
 
 
-class GenericReversedManager(models.Manager):
+class GenericReversedManager(Manager):
     """
     动作的接受者使用这个类
     """
@@ -91,3 +104,89 @@ class GenericReversedManager(models.Manager):
         queryset = self.target._default_manager.filter(pk__in=self.through._default_manager.filter(**kwargs).values(tg_pk))
 
         return queryset
+
+
+class GenericJoin(Join):
+
+    def __init__(self, left, right, extra_fields=None):
+        # left = Article  right = Like
+        table_name = right._meta.db_table
+        parent_alias = left._meta.db_table
+        table_alias = 'T'
+
+        join_type = LOUTER
+        join_field = ForeignObject(to=right, on_delete=lambda: None, from_fields=[None], to_fields=[None])
+        join_field.opts = Options(left._meta)
+        join_field.opts.model = left
+        join_field.get_joining_columns = lambda: ((left._meta.pk.column, right._meta.private_fields[0].fk_field),)
+        # join_field.get_extra_restriction = get_extra_restriction
+
+        nullable = True
+        super().__init__(table_name, parent_alias, table_alias, join_type, join_field, nullable, filtered_relation=None)
+
+        def get_extra_restriction(where_class, left, right, extra_fields=None):
+            def get_lookup(fname, fvalue):
+                field = right._meta.get_field(fname)
+                lookup = field.get_lookup('exact')(field.get_col(right._meta.db_table), fvalue)
+                return lookup
+
+            ct_pk = ContentType.objects.get_for_model(left).pk
+            default_fields = [('content_type', ct_pk)]
+            if extra_fields is not None:
+                default_fields.extend(extra_fields)
+
+            cond = where_class()
+            for fname, fvalue in default_fields:
+                cond.add(get_lookup(fname, fvalue), 'AND')
+
+            return cond
+
+        self.get_extra_restriction = functools.partial(get_extra_restriction, left=left, right=right, extra_fields=extra_fields)
+
+    def as_sql(self, compiler, connection):
+        join_conditions = []
+        params = []
+        qn = compiler.quote_name_unless_alias
+        qn2 = connection.ops.quote_name
+
+        # Add a join condition for each pair of joining columns.
+        for lhs_col, rhs_col in self.join_cols:
+            join_conditions.append('%s.%s = %s.%s' % (
+                qn(self.parent_alias),
+                qn2(lhs_col),
+                qn(self.table_alias),
+                qn2(rhs_col),
+            ))
+
+        # Add a single condition inside parentheses for whatever
+        # get_extra_restriction() returns.
+        extra_cond = self.join_field.get_extra_restriction(
+            compiler.query.where_class, self.table_alias, self.parent_alias)
+        if extra_cond:
+            extra_sql, extra_params = compiler.compile(extra_cond)
+            join_conditions.append('(%s)' % extra_sql)
+            params.extend(extra_params)
+
+        # Add content type related conditions
+        extra_cond = self.get_extra_restriction(compiler.query.where_class)
+        if extra_cond:
+            extra_sql, extra_params = compiler.compile(extra_cond)
+            join_conditions.append('(%s)' % extra_sql)
+            params.extend(extra_params)
+
+        if self.filtered_relation:
+            extra_sql, extra_params = compiler.compile(self.filtered_relation)
+            if extra_sql:
+                join_conditions.append('(%s)' % extra_sql)
+                params.extend(extra_params)
+        if not join_conditions:
+            # This might be a rel on the other end of an actual declared field.
+            declared_field = getattr(self.join_field, 'field', self.join_field)
+            raise ValueError(
+                "Join generated an empty ON clause. %s did not yield either "
+                "joining columns or extra restrictions." % declared_field.__class__
+            )
+        on_clause_sql = ' AND '.join(join_conditions)
+        alias_str = '' if self.table_alias == self.table_name else (' %s' % self.table_alias)
+        sql = '%s %s%s ON (%s)' % (self.join_type, qn(self.table_name), alias_str, on_clause_sql)
+        return sql, params

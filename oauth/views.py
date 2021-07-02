@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.utils import timezone
-from rest_framework import mixins, viewsets, status, views
+from rest_framework import mixins, status, views, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -39,18 +39,18 @@ class TokenAPIView(views.APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response('You are logged in.')
 
     def put(self, request, *args, **kwargs):
         token = request.auth
         token.set_exp()
         data = {'access': str(token)}
-        return Response(data)
+        return Response(data, status=status.HTTP_201_CREATED)
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data)
+        return Response(serializer.validated_data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, *args, **kwargs):
         logout_user(request)
@@ -70,7 +70,7 @@ class TokenAPIView(views.APIView):
     def get_serializer_class(self):
         data = self.request.data
         if self.request.method == 'POST':
-            if 'digits' in data:
+            if 'phone_code' in data:
                 if 'phone' in data:
                     return PhoneAndCodeSerializer
                 elif 'email' in data:
@@ -247,8 +247,20 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(PinSerializer(queryset, **params).data)
 
     @action(methods=['get'], detail=True)
-    def polls(self, request, *args, **kwargs):
-        pass
+    def tags(self, request, *args, **kwargs):
+        from taggit.serializers import TagSerializer
+        user = self.get_object()
+        queryset = user.tags.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(TagSerializer(queryset, **params).data)
+
+    @action(methods=['get'], detail=True)
+    def questions(self, request, *args, **kwargs):
+        from polls.serializers import QuestionSerializer
+        user = self.get_object()
+        queryset = user.questions.all()
+        params = {'context': {'request': self.request}, 'many': True}
+        return Response(QuestionSerializer(queryset, **params).data)
 
     @action(methods=['get'], detail=True)
     def comments(self, request, *args, **kwargs):

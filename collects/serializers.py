@@ -3,7 +3,7 @@ from rest_framework.exceptions import ValidationError
 
 from collects.models import Collect, Collection
 from commons.constants import Messages
-from commons.fields.serializers import ContentTypeNaturalKeyField, GenericRelatedField, ContentTypeSerializer
+from commons.fields.serializers import ContentTypeNaturalKeyField, GenericRelatedField, ContentTypeMixin
 
 
 class CollectionSerializer(serializers.ModelSerializer):
@@ -14,7 +14,7 @@ class CollectionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class CollectSerializer(ContentTypeSerializer):
+class CollectSerializer(ContentTypeMixin, serializers.ModelSerializer):
     content_type = ContentTypeNaturalKeyField(label='内容类型')
     content_object = GenericRelatedField(action_models='COLLECT_MODELS', read_only=True)
 
@@ -23,6 +23,7 @@ class CollectSerializer(ContentTypeSerializer):
         fields = '__all__'
 
     def validate(self, attrs):
+        # 多重继承中的父类均有相同的子方法按照`__mro__`顺序查找并执行
         attrs = super().validate(attrs)
 
         request = self.context['request']
@@ -33,5 +34,9 @@ class CollectSerializer(ContentTypeSerializer):
         return attrs
 
     def create(self, validated_data):
-        collect, _ = Collect.objects.get_or_create(**validated_data)
+        collect, _ = Collect.objects.get_or_create(
+            collection=validated_data['collection'],
+            content_type=validated_data['content_type'],
+            object_id=validated_data['instance'].pk
+        )
         return collect

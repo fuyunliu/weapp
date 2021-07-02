@@ -7,7 +7,6 @@ from django.utils.module_loading import import_string
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import CharField, ReadOnlyField
 from rest_framework.relations import RelatedField
-from rest_framework.serializers import ModelSerializer
 
 from commons.constants import Messages
 from commons.fields.phonenumber import PhoneNumber
@@ -92,19 +91,21 @@ class GenericRelatedField(RelatedField):
         return str(value)
 
 
-class ContentTypeSerializer(ModelSerializer):
+class ContentTypeMixin:
 
     def validate(self, attrs):
         content_type = attrs['content_type']
-        action_models = getattr(self.fields['content_type'], 'action_models')
+        action_claim = getattr(self.fields.get('content_object'), 'action_models', None)
 
         model_path = f'{content_type.app_label}.{content_type.model}'
-        if model_path not in getattr(settings, action_models, {}):
+        if action_claim is not None and model_path not in getattr(settings, action_claim, {model_path: None}):
             raise ValidationError({'content_type': Messages.CONTENT_TYPE_NOT_ALLOWED})
 
         try:
-            content_type.get_object_for_this_type(pk=attrs['object_id'])
+            obj = content_type.get_object_for_this_type(pk=attrs['object_id'])
         except ObjectDoesNotExist:
             raise ValidationError({'object_id': Messages.OBJECT_NOT_FOUND})
+        else:
+            attrs['instance'] = obj
 
         return attrs

@@ -54,7 +54,7 @@ class Article(models.Model):
         return self.title
 
     def save(self, *args, **kwargs):
-        self.slug = slugify(self.title)
+        self.slug = slugify(self.title, allow_unicode=True)
         self.body_html = markdown(self.body, extensions=['fenced_code', 'codehilite'])
         super().save(*args, **kwargs)
 
@@ -127,7 +127,7 @@ class Category(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        self.slug = slugify(self.name)
+        self.slug = slugify(self.name, allow_unicode=True)
         super().save(*args, **kwargs)
 
 
@@ -157,7 +157,7 @@ class Topic(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        self.slug = slugify(self.name)
+        self.slug = slugify(self.name, allow_unicode=True)
         super().save(*args, **kwargs)
 
     def is_owned(self, user):
@@ -188,5 +188,5 @@ class Tag(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        self.slug = slugify(self.name)
+        self.slug = slugify(self.name, allow_unicode=True)
         super().save(*args, **kwargs)

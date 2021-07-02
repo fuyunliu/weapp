@@ -21,6 +21,7 @@ class Messages:
     COLLECTION_NOT_ALLOWED = "This collection doesn't belong to you."
     QUESTION_NOT_ALLOWED = "This question doesn't belong to you."
     VOTE_MAX_NUM = "You can vote this question at least {0} choices."
+    INSTANCE_NOT_ALLOWED = "Content type `{0}` and target object `{1}` doesn't belong to you."
 
 
 class CacheKeySet:

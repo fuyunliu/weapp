@@ -313,7 +313,6 @@ class PhoneAndPasswordSerializer(serializers.Serializer):
         return data
 
 
-
 class EmailAndPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField(label='邮箱')
     password = PasswordField(label='密码')

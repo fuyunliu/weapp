@@ -1,18 +1,17 @@
-from rest_framework import mixins, viewsets
+from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.utils.serializer_helpers import ReturnList
 
 from taggit.models import Tag, TaggedItem
-from taggit.serializers import TagSerializer, TaggedItemSerializer
-from commons.permissions import IsOwnerOrReadOnly
+from taggit.serializers import TagSerializer, TaggedItemSerializer, BulkTaggedSerializer
+from commons.permissions import IsOwnerOrReadOnly, IsAdminOrReadOnly
 
 
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    # 谁都可以删除吗？
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrReadOnly]
 
     @action(methods=['get'], detail=True)
     def items(self, *args, **kwargs):
@@ -30,3 +29,15 @@ class TaggedItemViewSet(
     queryset = TaggedItem.objects.all().select_related('tag')
     serializer_class = TaggedItemSerializer
     permission_classes = [IsOwnerOrReadOnly]
+
+    def get_serializer_class(self):
+        if self.action == 'bulk':
+            return BulkTaggedSerializer
+        return self.serializer_class
+
+    @action(methods=['post'], detail=False)
+    def bulk(self, *args, **kwargs):
+        serializer = self.get_serializer(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
+        items = serializer.bulk_create()
+        return Response(TaggedItemSerializer(items, many=True).data, status=status.HTTP_201_CREATED)

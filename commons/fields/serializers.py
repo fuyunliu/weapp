@@ -91,7 +91,7 @@ class GenericRelatedField(RelatedField):
         return str(value)
 
 
-class ContentTypeMixin:
+class CheckContentTypeMixin:
 
     def validate(self, attrs):
         content_type = attrs['content_type']
@@ -109,3 +109,32 @@ class ContentTypeMixin:
             attrs['instance'] = obj
 
         return attrs
+
+
+class DynamicFieldsMixin:
+
+    def __init__(self, *args, **kwargs):
+        include = list(kwargs.pop('include', []))
+        exclude = list(kwargs.pop('exclude', []))
+        expand = list(kwargs.pop('expand', []))
+
+        super().__init__(*args, **kwargs)
+
+        for field_name in self.get_remove_field_names(include, exclude, expand):
+            self.fields.pop(field_name)
+
+    def get_remove_field_names(self, include, exclude, expand):
+        all_fields = set(self.fields)
+        expandable_fields = set(getattr(self.Meta, 'expandable_fields', []))
+        default_fields = all_fields - expandable_fields
+
+        remove = []
+        # 包含字段
+        include and remove.extend(default_fields - set(include))
+        # 排除字段
+        exclude and remove.extend(exclude)
+        # 扩展字段
+        expand and remove.extend(expandable_fields - set(expand))
+
+        # 取交集以去除非法字段
+        return list(set(remove) & all_fields)

@@ -6,7 +6,7 @@ from rest_framework.utils.serializer_helpers import ReturnList
 
 from taggit.models import Tag, TaggedItem
 from commons.constants import Messages
-from commons.fields.serializers import ContentTypeNaturalKeyField, GenericRelatedField, ContentTypeMixin
+from commons.fields.serializers import ContentTypeNaturalKeyField, GenericRelatedField, CheckContentTypeMixin
 from commons.utils import string_split
 
 
@@ -16,7 +16,7 @@ class TagSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class TaggedItemSerializer(ContentTypeMixin, serializers.ModelSerializer):
+class TaggedItemSerializer(CheckContentTypeMixin, serializers.ModelSerializer):
     content_type = ContentTypeNaturalKeyField(label='内容类型')
     content_object = GenericRelatedField(action_models='TAGGIT_MODELS', read_only=True)
 
@@ -44,7 +44,7 @@ class TaggedItemSerializer(ContentTypeMixin, serializers.ModelSerializer):
         return tagged_item
 
 
-class BulkTaggedSerializer(ContentTypeMixin, serializers.ModelSerializer):
+class BulkTaggedSerializer(CheckContentTypeMixin, serializers.ModelSerializer):
     content_type = ContentTypeNaturalKeyField(label='内容类型')
     object_id = serializers.IntegerField(label='对象主键', min_value=0, required=True)
     tags = serializers.CharField(label='标签', allow_blank=True, help_text='多标签使用空格、逗号或分号分隔。')

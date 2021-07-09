@@ -10,6 +10,7 @@ from rest_framework.settings import api_settings
 
 from commons import utils
 from commons.constants import Messages, CacheKeySet
+from commons.fields.serializers import DynamicFieldsMixin
 from commons.fields.serializers import PhoneField, PhoneCodeField, PasswordField, TimesinceField
 from oauth import login_user, logout_user, user_can_authenticate
 from oauth.email import PhoneCodeEmail
@@ -25,23 +26,42 @@ class GroupSerializer(serializers.ModelSerializer):
 
 
 class ProfileSerializer(serializers.ModelSerializer):
-    # user = serializers.HyperlinkedIdentityField(view_name='user-detail', read_only=True)
+    avatar = serializers.SerializerMethodField()
+
     class Meta:
         model = Profile
-        fields = ['url', 'nickname', 'gender', 'birthday', 'location', 'about_me', 'avatar_hash']
-        read_only_fields = ['nickname', 'avatar_hash']
+        fields = ['user_id', 'nickname', 'gender', 'birthday', 'location', 'about_me', 'avatar']
+        read_only_fields = ['nickname']
+
+    def get_avatar(self, obj):
+        return obj.gravatar()
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(DynamicFieldsMixin, serializers.ModelSerializer):
     date_joined = TimesinceField()
-    # nickname = serializers.ReadOnlyField(source='profile.nickname')
-    # profile = serializers.HyperlinkedRelatedField(view_name='profile-detail', read_only=True)
-    # articles = serializers.HyperlinkedRelatedField(many=True, view_name='article-detail', read_only=True)
+    is_following = serializers.SerializerMethodField()
+    is_followed = serializers.SerializerMethodField()
 
     class Meta:
         model = UserModel
-        fields = ['url', 'username', 'email', 'phone', 'first_name', 'last_name', 'date_joined']
+        fields = [
+            'id', 'username', 'email', 'phone', 'first_name', 'last_name', 'date_joined',
+            'is_following', 'is_followed'
+        ]
         read_only_fields = ['username', 'email', 'phone']
+        expandable_fields = ['is_following', 'is_followed']
+
+    def get_is_following(self, obj):
+        return (
+            (hasattr(obj, 'following_id') and obj.following_id is not None) or
+            (hasattr(obj, 'is_following') and obj.is_following)
+        )
+
+    def get_is_followed(self, obj):
+        return (
+            (hasattr(obj, 'followed_id') and obj.followed_id is not None) or
+            (hasattr(obj, 'is_followed') and obj.is_followed)
+        )
 
 
 class UserCreateSerializer(serializers.ModelSerializer):

@@ -1,10 +1,10 @@
 from rest_framework import serializers
 
 from likes.models import Like
-from commons.fields.serializers import ContentTypeNaturalKeyField, GenericRelatedField, ContentTypeMixin
+from commons.fields.serializers import ContentTypeNaturalKeyField, GenericRelatedField, CheckContentTypeMixin
 
 
-class LikeSerializer(ContentTypeMixin, serializers.ModelSerializer):
+class LikeSerializer(CheckContentTypeMixin, serializers.ModelSerializer):
     sender = serializers.ReadOnlyField(source='sender.username')
     content_type = ContentTypeNaturalKeyField(label='内容类型')
     content_object = GenericRelatedField(action_models='LIKE_MODELS', read_only=True)

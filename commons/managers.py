@@ -1,21 +1,15 @@
-import random
 import functools
+import random
 
 from django.apps import apps
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.db.models.aggregates import Count, Max, Min
-from django.db.models.query import QuerySet
+from django.db.models.fields.related import ForeignObject
 from django.db.models.manager import Manager
 from django.db.models.options import Options
+from django.db.models.query import QuerySet
 from django.db.models.sql.datastructures import Join
-from django.db.models.fields.related import ForeignObject
-from django.db.models.sql.constants import LOUTER
-from django.contrib.contenttypes.models import ContentType
-from django.db.models import Case, Value, When
-from django.db.models.expressions import Col
-
-from django.db.models.fields.related import ForeignObject
-from django.contrib.contenttypes.models import ContentType
 
 
 class GenericQuerySet(QuerySet):
@@ -50,10 +44,28 @@ class ManagerDescriptor:
 
 class GenericRelatedManager(Manager):
     """
-    动作的发出者使用这个类
+    动作的执行者使用这个类
+        - 我关注的人
+        - 我关注的收藏夹
+        - 我关注的分类
+        - 我关注的话题
+        - 我喜欢的收藏夹
+        - 我喜欢的评论
+        - 我喜欢的文章
+        - 我喜欢的想法
+        - 收藏夹收藏的文章
+        - 收藏夹收藏的想法
+
     """
 
-    def __init__(self, instance, model, through, target):
+    def __init__(self, instance, model, through, target) -> None:
+        """
+        Args:
+            instance (Model instance): 实例对象
+            model (instance Model): 实例模型
+            through (through Model): 中间模型
+            target (target Model): 目标模型
+        """
         super().__init__()
         self.model = model
         self.instance = instance
@@ -80,9 +92,28 @@ class GenericRelatedManager(Manager):
 class GenericReversedManager(Manager):
     """
     动作的接受者使用这个类
+        - 贴给我的标签
+        - 关注我的人
+        - 喜欢收藏夹的人
+        - 关注收藏夹的人
+        - 喜欢评论的人
+        - 喜欢文章的人
+        - 收藏文章的收藏夹
+        - 喜欢想法的人
+        - 收藏想法的收藏夹
+        - 关注分类的人
+        - 关注话题的人
+
     """
 
-    def __init__(self, instance, model, through, target):
+    def __init__(self, instance, model, through, target) -> None:
+        """
+        Args:
+            instance (Model instance): 实例对象
+            model (instance Model): 实例模型
+            through (through Model): 中间模型
+            target (target Model): 目标模型
+        """
         super().__init__()
         self.model = model
         self.instance = instance
@@ -107,41 +138,57 @@ class GenericReversedManager(Manager):
 
 
 class GenericJoin(Join):
+    """
+    BUG: QuerySet must filter something or else it will cause SQL Error.
 
-    def __init__(self, left, right, extra_fields=None):
-        # left = Article  right = Like
-        table_name = right._meta.db_table
-        parent_alias = left._meta.db_table
-        table_alias = 'T'
+    Sample:
+    ```python
+        # left = Article right = Like
+        q = Article.objects.filter(status=1)
+        join = GenericJoin(Article, Like, LOUTER, (('id', 'object_id'),), (('content_type', 10), ('sender', 2)))
+        q.query.join(join)
+    ```
+    """
 
-        join_type = LOUTER
-        join_field = ForeignObject(to=right, on_delete=lambda: None, from_fields=[None], to_fields=[None])
+    def __init__(self, left, right, join_type, join_cols, extra_conds=None):
+        """
+        Args:
+            left (Model): 左表
+            right (Model): 右表
+            join_type (str): 连接类型
+            join_cols (tuple): 连接字段
+            extra_conds (tuple): 额外连接条件
+        """
+        def get_joining_columns():
+            return tuple((left_field, right_field) for left_field, right_field in join_cols)
+
+        join_field = ForeignObject(
+            to=right,
+            on_delete=lambda: None,
+            from_fields=[None],
+            to_fields=[None]
+        )
         join_field.opts = Options(left._meta)
         join_field.opts.model = left
-        join_field.get_joining_columns = lambda: ((left._meta.pk.column, right._meta.private_fields[0].fk_field),)
-        # join_field.get_extra_restriction = get_extra_restriction
+        join_field.get_joining_columns = get_joining_columns
+        super().__init__(right._meta.db_table, left._meta.db_table, 'T', join_type, join_field, True)
 
-        nullable = True
-        super().__init__(table_name, parent_alias, table_alias, join_type, join_field, nullable, filtered_relation=None)
+        def get_extra_restriction(self, where_class, left, right, extra_conds):
+            if extra_conds is None:
+                return None
 
-        def get_extra_restriction(where_class, left, right, extra_fields=None):
             def get_lookup(fname, fvalue):
                 field = right._meta.get_field(fname)
-                lookup = field.get_lookup('exact')(field.get_col(right._meta.db_table), fvalue)
+                lookup = field.get_lookup('exact')(field.get_col(self.table_alias), fvalue)
                 return lookup
 
-            ct_pk = ContentType.objects.get_for_model(left).pk
-            default_fields = [('content_type', ct_pk)]
-            if extra_fields is not None:
-                default_fields.extend(extra_fields)
-
             cond = where_class()
-            for fname, fvalue in default_fields:
+            for fname, fvalue in extra_conds:
                 cond.add(get_lookup(fname, fvalue), 'AND')
 
             return cond
 
-        self.get_extra_restriction = functools.partial(get_extra_restriction, left=left, right=right, extra_fields=extra_fields)
+        self.get_extra_restriction = functools.partial(get_extra_restriction, self=self, left=left, right=right, extra_conds=extra_conds)
 
     def as_sql(self, compiler, connection):
         join_conditions = []
@@ -167,8 +214,8 @@ class GenericJoin(Join):
             join_conditions.append('(%s)' % extra_sql)
             params.extend(extra_params)
 
-        # Add content type related conditions
-        extra_cond = self.get_extra_restriction(compiler.query.where_class)
+        # 添加额外的 Join On 条件
+        extra_cond = self.get_extra_restriction(where_class=compiler.query.where_class)
         if extra_cond:
             extra_sql, extra_params = compiler.compile(extra_cond)
             join_conditions.append('(%s)' % extra_sql)

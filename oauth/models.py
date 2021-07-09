@@ -1,3 +1,5 @@
+import hashlib
+import urllib.parse as urlparse
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, Group, Permission, UserManager as _UserManager
 from django.contrib.contenttypes.models import ContentType
@@ -120,7 +122,6 @@ class Profile(models.Model):
     birthday = models.DateField('生日', null=True, blank=True)
     location = models.CharField('地区', max_length=64, blank=True)
     about_me = models.TextField('签名', blank=True)
-    avatar_hash = models.CharField('头像哈希值', max_length=32)
     nick_mtime = models.DateTimeField('改名时间', default=_nickname_mtime, editable=False)
 
     class Meta:
@@ -158,6 +159,16 @@ class Profile(models.Model):
                 self.nickname = name
                 self.nick_mtime = timezone.now()
                 break
+
+    def gravatar(self, size=80):
+        url = "https://gravatar.loli.top/avatar"
+        hash = hashlib.md5(self.user.email.lower().encode('utf-8')).hexdigest()
+        query = {
+            's': size,
+            'd': 'identicon',
+            'r': 'g'
+        }
+        return f'{url}/{hash}?{urlparse.urlencode(query)}'
 
 
 def create_profile(sender, **kwargs):

@@ -6,39 +6,67 @@ from weblog.models import Article, Pin, Category, Topic, Tag
 class ArticleSerializer(serializers.ModelSerializer):
     author = serializers.ReadOnlyField(source='author.username')
     content_type = serializers.SerializerMethodField()
-    highlight = serializers.HyperlinkedIdentityField(view_name='article-highlight', format='html')
+    # highlight = serializers.HyperlinkedIdentityField(view_name='article-highlight', format='html')
     is_liked = serializers.SerializerMethodField()
+    like_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+    collect_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Article
         fields = '__all__'
-        read_only_fields = ['body_html']
 
     def get_content_type(self, obj):
         ct = ContentType.objects.get_for_model(obj)
         return f'{ct.app_label}.{ct.model}'
 
     def get_is_liked(self, obj):
-        return True if obj.like_id is not None else False
+        return (
+            (hasattr(obj, 'like_id') and obj.like_id) or
+            (hasattr(obj, 'is_liked') and obj.is_liked)
+        )
+
+    def get_like_count(self, obj):
+        return obj.likes.count()
+
+    def get_comment_count(self, obj):
+        return obj.comments.count()
+
+    def get_collect_count(self, obj):
+        return obj.collects.count()
 
 
 class PinSerializer(serializers.ModelSerializer):
     author = serializers.ReadOnlyField(source='author.username')
     content_type = serializers.SerializerMethodField()
-    highlight = serializers.HyperlinkedIdentityField(view_name='pin-highlight', format='html')
+    # highlight = serializers.HyperlinkedIdentityField(view_name='pin-highlight', format='html')
     is_liked = serializers.SerializerMethodField()
+    like_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+    collect_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Pin
         fields = '__all__'
-        read_only_fields = ['body_html']
 
     def get_content_type(self, obj):
         ct = ContentType.objects.get_for_model(obj)
         return f'{ct.app_label}.{ct.model}'
 
     def get_is_liked(self, obj):
-        return True if obj.like_id is not None else False
+        return (
+            (hasattr(obj, 'like_id') and obj.like_id) or
+            (hasattr(obj, 'is_liked') and obj.is_liked)
+        )
+
+    def get_like_count(self, obj):
+        return obj.likes.count()
+
+    def get_comment_count(self, obj):
+        return obj.comments.count()
+
+    def get_collect_count(self, obj):
+        return obj.collects.count()
 
 
 class CategorySerializer(serializers.ModelSerializer):

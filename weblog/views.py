@@ -1,31 +1,37 @@
 from django.db.models.expressions import Col
+from django.db.models.sql.constants import LOUTER
+from django.contrib.contenttypes.models import ContentType
+
 from rest_framework import viewsets, renderers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from commons.permissions import IsOwnerOrReadOnly, IsAdminOrReadOnly
 from commons.managers import GenericJoin
+from commons.selectors import select_article, select_pin
 from likes.models import Like
 from weblog.models import Article, Pin, Category, Topic, Tag
 from weblog.serializers import ArticleSerializer, PinSerializer, CategorySerializer, TopicSerializer, TagSerializer
 
 
 class ArticleViewSet(viewsets.ModelViewSet):
-    queryset = Article.objects.filter(status=Article.Status.PUBLISHED)\
-        .annotate(like_id=Col(Like._meta.db_table, Like._meta.pk))\
-        .select_related('author', 'category').prefetch_related('tags', 'topics')
+    queryset = Article.objects.all()
     serializer_class = ArticleSerializer
     permission_classes = [IsOwnerOrReadOnly]
 
     def get_queryset(self):
-        user = self.request.user
         queryset = super().get_queryset()
-        join = GenericJoin(Article, Like, extra_fields=[('sender', user.pk)])
-        queryset.query.join(join)
+        queryset = select_article(queryset, self.request)
         return queryset
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    def retrieve(self, request, *args, **kwargs):
+        article = self.get_object()
+        article.viewed()
+        serializer = self.get_serializer(article)
+        return Response(serializer.data)
 
     @action(methods=['get'], detail=True, renderer_classes=[renderers.StaticHTMLRenderer])
     def highlight(self, request, *args, **kwargs):
@@ -50,17 +56,13 @@ class ArticleViewSet(viewsets.ModelViewSet):
 
 
 class PinViewSet(viewsets.ModelViewSet):
-    queryset = Pin.objects.filter(pk__gt=0)\
-        .annotate(like_id=Col(Like._meta.db_table, Like._meta.pk))\
-        .select_related('author')
+    queryset = Pin.objects.all()
     serializer_class = PinSerializer
     permission_classes = [IsOwnerOrReadOnly]
 
     def get_queryset(self):
-        user = self.request.user
         queryset = super().get_queryset()
-        join = GenericJoin(Pin, Like, extra_fields=[('sender', user.pk)])
-        queryset.query.join(join)
+        queryset = select_pin(queryset, self.request)
         return queryset
 
     def perform_create(self, serializer):

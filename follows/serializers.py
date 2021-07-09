@@ -1,10 +1,10 @@
 from rest_framework import serializers
 
 from follows.models import Follow
-from commons.fields.serializers import ContentTypeNaturalKeyField, GenericRelatedField, ContentTypeMixin
+from commons.fields.serializers import ContentTypeNaturalKeyField, GenericRelatedField, CheckContentTypeMixin
 
 
-class FollowSerializer(ContentTypeMixin, serializers.ModelSerializer):
+class FollowSerializer(CheckContentTypeMixin, serializers.ModelSerializer):
     sender = serializers.ReadOnlyField(source='sender.username')
     content_type = ContentTypeNaturalKeyField(label='内容类型')
     content_object = GenericRelatedField(action_models='FOLLOW_MODELS', read_only=True)

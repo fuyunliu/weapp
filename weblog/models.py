@@ -1,6 +1,7 @@
 import textwrap
 from django.conf import settings
 from django.db import models
+from django.db.models.expressions import F
 from django.contrib.contenttypes.fields import GenericRelation
 from django.utils.text import slugify
 from markdown import markdown
@@ -15,8 +16,9 @@ class Article(models.Model):
 
     title = models.CharField('标题', max_length=64)
     body = models.TextField('正文')
-    body_html = models.TextField('源码')
-    status = models.PositiveSmallIntegerField('状态', choices=Status.choices, default=Status.DRAFT)
+    body_html = models.TextField('源码', editable=False)
+    status = models.PositiveSmallIntegerField('状态', choices=Status.choices, default=Status.DRAFT, editable=False)
+    view_count = models.PositiveIntegerField('浏览量', default=0, editable=False)
     created = models.DateTimeField('创建时间', auto_now_add=True, editable=False)
     updated = models.DateTimeField('更新时间', auto_now=True, editable=False)
     slug = models.SlugField(max_length=255, unique=True, editable=False)
@@ -33,16 +35,17 @@ class Article(models.Model):
     )
     tags = models.ManyToManyField('Tag', verbose_name='标签集', blank=True)
     topics = models.ManyToManyField('Topic', verbose_name='话题集', blank=True)
-    comments = GenericRelation('comments.Comment')
     likes = GenericRelation('likes.Like')
-
-    objects = GenericQuerySet.as_manager()
+    comments = GenericRelation('comments.Comment')
+    collects = GenericRelation('collects.Collect')
 
     # 喜欢文章的人
     likers = ManagerDescriptor(manager=GenericReversedManager, through='likes.Like', target='oauth.User')
 
     # 收藏文章的收藏夹
     collections = ManagerDescriptor(manager=GenericReversedManager, through='collects.Collect', target='collects.Collection')
+
+    objects = GenericQuerySet.as_manager()
 
     class Meta:
         ordering = ['-created']
@@ -58,13 +61,18 @@ class Article(models.Model):
         self.body_html = markdown(self.body, extensions=['fenced_code', 'codehilite'])
         super().save(*args, **kwargs)
 
+    def viewed(self):
+        self.view_count = F('view_count') + 1
+        self.save(update_fields=['view_count'])
+        self.refresh_from_db()
+
     def is_owned(self, user):
         return self.author == user
 
 
 class Pin(models.Model):
     body = models.TextField('正文')
-    body_html = models.TextField('源码')
+    body_html = models.TextField('源码', editable=False)
     created = models.DateTimeField('创建时间', auto_now_add=True, editable=False)
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -72,16 +80,17 @@ class Pin(models.Model):
         related_name='pins',
         verbose_name='作者'
     )
-    comments = GenericRelation('comments.Comment')
     likes = GenericRelation('likes.Like')
-
-    objects = GenericQuerySet.as_manager()
+    comments = GenericRelation('comments.Comment')
+    collects = GenericRelation('collects.Collect')
 
     # 喜欢想法的人
     likers = ManagerDescriptor(manager=GenericReversedManager, through='likes.Like', target='oauth.User')
 
     # 收藏想法的收藏夹
-    collections = ManagerDescriptor(manager=GenericReversedManager, through='collects.Collecct', target='collects.Collection')
+    collections = ManagerDescriptor(manager=GenericReversedManager, through='collects.Collect', target='collects.Collection')
+
+    objects = GenericQuerySet.as_manager()
 
     class Meta:
         ordering = ['-created']
@@ -112,10 +121,10 @@ class Category(models.Model):
     )
     slug = models.SlugField(max_length=255, unique=True, editable=False)
 
-    objects = GenericQuerySet.as_manager()
-
     # 关注分类的人
     followers = ManagerDescriptor(manager=GenericReversedManager, through='follows.Follow', target='oauth.User')
+
+    objects = GenericQuerySet.as_manager()
 
     class Meta:
         ordering = ['id']
@@ -142,10 +151,10 @@ class Topic(models.Model):
     desc = models.TextField('描述', blank=True)
     slug = models.SlugField(max_length=255, unique=True, editable=False)
 
-    objects = GenericQuerySet.as_manager()
-
     # 关注话题的人
     followers = ManagerDescriptor(manager=GenericReversedManager, through='follows.Follow', target='oauth.User')
+
+    objects = GenericQuerySet.as_manager()
 
     class Meta:
         ordering = ['id']

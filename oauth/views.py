@@ -7,6 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
+from commons import selectors
 from commons.permissions import IsMeOrAdmin, IsOwnerOrAdmin
 from oauth import logout_user
 from oauth.email import DestroyUserEmail
@@ -121,8 +122,13 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         queryset = super().get_queryset()
-        if self.action == 'list' and not user.is_staff:
-            queryset = queryset.filter(pk=user.pk)
+        if self.action == 'list':
+            if not user.is_staff:
+                queryset = queryset.filter(pk=user.pk)
+            queryset = selectors.select_user(queryset, self.request)
+        elif self.action == 'retrieve':
+            queryset = selectors.select_user(queryset, self.request)
+
         return queryset
 
     def get_instance(self):
@@ -135,6 +141,13 @@ class UserViewSet(viewsets.ModelViewSet):
         }
         self.permission_classes = action_perms.get(self.action, self.permission_classes)
         return super().get_permissions()
+
+    def get_serializer(self, *args, **kwargs):
+        serializer_class = self.get_serializer_class()
+        kwargs.setdefault('context', self.get_serializer_context())
+        if self.action == 'list' or self.action == 'retrieve':
+            kwargs['expand'] = ['is_following', 'is_followed']
+        return serializer_class(*args, **kwargs)
 
     def get_serializer_class(self):
         action_seres = {
@@ -158,7 +171,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         instance.is_active = False
-        instance.save()
+        instance.save(update_fields=['is_active'])
         destroy_user.apply_async((instance.pk,), eta=timezone.now() + settings.DESTROY_USER_TIMEDELTA, expires=60)
 
     @action(['get'], detail=False)
@@ -170,7 +183,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def activation(self, request, *args, **kwargs):
         user = self.get_object()
         user.is_active = not user.is_active
-        user.save()
+        user.save(update_fields=['is_active'])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['post'], detail=True, url_path='set-username')
@@ -180,7 +193,7 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         username = serializer.validated_data['username']
         user.set_username(username)
-        user.save()
+        user.save(update_fields=['username'])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['post'], detail=True, url_path='set-nickname')
@@ -191,7 +204,7 @@ class UserViewSet(viewsets.ModelViewSet):
         nickname = serializer.validated_data['nickname']
         profile = user.profile
         profile.set_nickname(nickname)
-        profile.save()
+        profile.save(update_fields=['nickname'])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['post'], detail=True, url_path='set-password')
@@ -201,7 +214,7 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         password = serializer.validated_data['password']
         user.set_password(password)
-        user.save()
+        user.save(update_fields=['password'])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['post'], detail=True, url_path='set-email')
@@ -211,7 +224,7 @@ class UserViewSet(viewsets.ModelViewSet):
         email = serializer.validated_data['email']
         user = self.get_object()
         user.email = email
-        user.save()
+        user.save(update_fields=['email'])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['post'], detail=True, url_path='set-phone')
@@ -221,137 +234,88 @@ class UserViewSet(viewsets.ModelViewSet):
         phone = serializer.validated_data['phone']
         user = self.get_object()
         user.phone = phone
-        user.save()
+        user.save(update_fields=['phone'])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['get'], detail=True)
     def profile(self, request, *args, **kwargs):
         user = self.get_object()
-        params = {'context': {'request': self.request}}
-        return Response(ProfileSerializer(user.profile, **params).data)
+        return Response(ProfileSerializer(user.profile).data)
 
     @action(methods=['get'], detail=True)
     def articles(self, request, *args, **kwargs):
-        from weblog.serializers import ArticleSerializer
         user = self.get_object()
-        queryset = user.articles.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(ArticleSerializer(queryset, **params).data)
+        return selectors.user_articles(self, user, request)
 
     @action(methods=['get'], detail=True)
     def pins(self, request, *args, **kwargs):
-        from weblog.serializers import PinSerializer
         user = self.get_object()
-        queryset = user.pins.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(PinSerializer(queryset, **params).data)
+        return selectors.user_pins(self, user, request)
 
     @action(methods=['get'], detail=True)
     def tags(self, request, *args, **kwargs):
-        from taggit.serializers import TagSerializer
         user = self.get_object()
-        queryset = user.tags.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(TagSerializer(queryset, **params).data)
+        return selectors.user_tags(self, user, request)
 
     @action(methods=['get'], detail=True)
     def questions(self, request, *args, **kwargs):
-        from polls.serializers import QuestionSerializer
         user = self.get_object()
-        queryset = user.questions.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(QuestionSerializer(queryset, **params).data)
+        return selectors.user_questions(self, user, request)
 
     @action(methods=['get'], detail=True)
     def comments(self, request, *args, **kwargs):
-        from comments.serializers import CommentSerializer
         user = self.get_object()
-        queryset = user.comments.all()
-
-        model_name = self.request.query_params.get('model_name')
-        if model_name is not None:
-            queryset = queryset.filter(content_type__model=model_name)
-
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(CommentSerializer(queryset, **params).data)
+        return selectors.user_comments(self, user, request)
 
     @action(methods=['get'], detail=True)
     def collections(self, request, *args, **kwargs):
-        from collects.serializers import CollectionSerializer
         user = self.get_object()
-        queryset = user.collections.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(CollectionSerializer(queryset, **params).data)
+        return selectors.user_collections(self, user, request)
 
     @action(methods=['get'], detail=True)
     def following(self, request, *args, **kwargs):
         user = self.get_object()
-        queryset = user.following.all()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return selectors.user_following(self, user, request)
 
     @action(methods=['get'], detail=True)
     def followers(self, request, *args, **kwargs):
         user = self.get_object()
-        queryset = user.followers.all()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return selectors.user_followers(self, user, request)
 
     @action(methods=['get'], detail=True, url_path='liking-collections')
     def liking_collections(self, request, *args, **kwargs):
-        from collects.serializers import CollectionSerializer
         user = self.get_object()
-        queryset = user.liking_collections.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(CollectionSerializer(queryset, **params).data)
+        return selectors.user_liking_collections(self, user, request)
 
     @action(methods=['get'], detail=True, url_path='following-collections')
     def following_collections(self, request, *args, **kwargs):
-        from collects.serializers import CollectionSerializer
         user = self.get_object()
-        queryset = user.following_collections.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(CollectionSerializer(queryset, **params).data)
+        return selectors.user_following_collections(self, user, request)
 
     @action(methods=['get'], detail=True, url_path='liking-comments')
     def liking_comments(self, request, *args, **kwargs):
-        from comments.serializers import CommentSerializer
         user = self.get_object()
-        queryset = user.liking_comments.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(CommentSerializer(queryset, **params).data)
+        return selectors.user_liking_comments(self, user, request)
 
     @action(methods=['get'], detail=True, url_path='liking-articles')
     def liking_articles(self, request, *args, **kwargs):
-        from weblog.serializers import ArticleSerializer
         user = self.get_object()
-        queryset = user.liking_articles.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(ArticleSerializer(queryset, **params).data)
+        return selectors.user_liking_articles(self, user, request)
 
     @action(methods=['get'], detail=True, url_path='liking-pins')
     def liking_pins(self, request, *args, **kwargs):
-        from weblog.serializers import PinSerializer
         user = self.get_object()
-        queryset = user.liking_pins.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(PinSerializer(queryset, **params).data)
+        return selectors.user_liking_pins(self, user, request)
 
     @action(methods=['get'], detail=True, url_path='following-categories')
     def following_categories(self, request, *args, **kwargs):
-        from weblog.serializers import CategorySerializer
         user = self.get_object()
-        queryset = user.following_categories.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(CategorySerializer(queryset, **params).data)
+        return selectors.user_following_categories(self, user, request)
 
     @action(methods=['get'], detail=True, url_path='following-topics')
     def following_topics(self, request, *args, **kwargs):
-        from weblog.serializers import TopicSerializer
         user = self.get_object()
-        queryset = user.following_topics.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(TopicSerializer(queryset, **params).data)
+        return selectors.user_following_topics(self, user, request)
 
 
 class ProfileViewSet(

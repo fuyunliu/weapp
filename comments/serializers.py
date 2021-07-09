@@ -1,10 +1,10 @@
 from rest_framework import serializers
 
 from comments.models import Comment
-from commons.fields.serializers import ContentTypeNaturalKeyField, GenericRelatedField, ContentTypeMixin
+from commons.fields.serializers import ContentTypeNaturalKeyField, GenericRelatedField, CheckContentTypeMixin
 
 
-class CommentSerializer(ContentTypeMixin, serializers.ModelSerializer):
+class CommentSerializer(CheckContentTypeMixin, serializers.ModelSerializer):
     author = serializers.ReadOnlyField(source='author.username')
     content_type = ContentTypeNaturalKeyField(label='内容类型')
     content_object = GenericRelatedField(action_models='COMMENT_MODELS', read_only=True)

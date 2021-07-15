@@ -1,8 +1,9 @@
 import textwrap
+
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.db.models.expressions import F
-from django.contrib.contenttypes.fields import GenericRelation
 from django.utils.text import slugify
 from markdown import markdown
 
@@ -33,11 +34,13 @@ class Article(models.Model):
         on_delete=models.CASCADE,
         verbose_name='分类'
     )
-    tags = models.ManyToManyField('Tag', verbose_name='标签集', blank=True)
     topics = models.ManyToManyField('Topic', verbose_name='话题集', blank=True)
     likes = GenericRelation('likes.Like')
     comments = GenericRelation('comments.Comment')
     collects = GenericRelation('collects.Collect')
+
+    # 文章的标签
+    tags = ManagerDescriptor(manager=GenericReversedManager, through='taggit.TaggedItem', target='taggit.Tag')
 
     # 喜欢文章的人
     likers = ManagerDescriptor(manager=GenericReversedManager, through='likes.Like', target='oauth.User')
@@ -60,6 +63,9 @@ class Article(models.Model):
         self.slug = slugify(self.title, allow_unicode=True)
         self.body_html = markdown(self.body, extensions=['fenced_code', 'codehilite'])
         super().save(*args, **kwargs)
+
+    def shorten(self, width):
+        return textwrap.shorten(self.body, width=width, placeholder='...')
 
     def viewed(self):
         self.view_count = F('view_count') + 1
@@ -93,17 +99,20 @@ class Pin(models.Model):
     objects = GenericQuerySet.as_manager()
 
     class Meta:
-        ordering = ['-created']
+        ordering = ['-id']
         get_latest_by = 'id'
         verbose_name = '想法'
         verbose_name_plural = verbose_name
 
     def __str__(self):
-        return textwrap.shorten(self.body, width=10, placeholder='...')
+        return self.shorten(width=10)
 
     def save(self, *args, **kwargs):
         self.body_html = markdown(self.body, extensions=['fenced_code', 'codehilite'])
         super().save(*args, **kwargs)
+
+    def shorten(self, width):
+        return textwrap.shorten(self.body, width=width, placeholder='...')
 
     def is_owned(self, user):
         return self.author == user

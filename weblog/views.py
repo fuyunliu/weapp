@@ -1,17 +1,11 @@
-from django.db.models.expressions import Col
-from django.db.models.sql.constants import LOUTER
-from django.contrib.contenttypes.models import ContentType
-
 from rest_framework import viewsets, renderers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from commons import selectors
 from commons.permissions import IsOwnerOrReadOnly, IsAdminOrReadOnly
-from commons.managers import GenericJoin
-from commons.selectors import select_article, select_pin
-from likes.models import Like
-from weblog.models import Article, Pin, Category, Topic, Tag
-from weblog.serializers import ArticleSerializer, PinSerializer, CategorySerializer, TopicSerializer, TagSerializer
+from weblog.models import Article, Pin, Category, Topic
+from weblog.serializers import ArticleSerializer, PinSerializer, CategorySerializer, TopicSerializer
 
 
 class ArticleViewSet(viewsets.ModelViewSet):
@@ -21,7 +15,8 @@ class ArticleViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        queryset = select_article(queryset, self.request)
+        if self.action == 'list' or self.action == 'retrieve':
+            queryset = selectors.select_article(queryset, self.request)
         return queryset
 
     def perform_create(self, serializer):
@@ -40,19 +35,28 @@ class ArticleViewSet(viewsets.ModelViewSet):
 
     @action(methods=['get'], detail=True)
     def likers(self, request, *args, **kwargs):
-        from oauth.serializers import UserSerializer
         article = self.get_object()
-        queryset = article.likers.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(UserSerializer(queryset, **params).data)
+        return selectors.article_likers(self, article, request)
 
     @action(methods=['get'], detail=True)
     def collections(self, request, *args, **kwargs):
-        from collects.serializers import CollectionSerializer
         article = self.get_object()
-        queryset = article.collections.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(CollectionSerializer(queryset, **params).data)
+        return selectors.article_collections(self, article, request)
+
+    @action(methods=['get'], detail=True)
+    def tags(self, request, *args, **kwargs):
+        article = self.get_object()
+        return selectors.article_tags(self, article, request)
+
+    @action(methods=['get'], detail=True)
+    def topics(self, request, *args, **kwargs):
+        article = self.get_object()
+        return selectors.article_topics(self, article, request)
+
+    @action(methods=['get'], detail=True)
+    def comments(self, request, *args, **kwargs):
+        article = self.get_object()
+        return selectors.article_comments(self, article, request)
 
 
 class PinViewSet(viewsets.ModelViewSet):
@@ -62,7 +66,8 @@ class PinViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        queryset = select_pin(queryset, self.request)
+        if self.action == 'list' or self.action == 'retrieve':
+            queryset = selectors.select_pin(queryset, self.request)
         return queryset
 
     def perform_create(self, serializer):
@@ -75,19 +80,18 @@ class PinViewSet(viewsets.ModelViewSet):
 
     @action(methods=['get'], detail=True)
     def likers(self, request, *args, **kwargs):
-        from oauth.serializers import UserSerializer
         pin = self.get_object()
-        queryset = pin.likers.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(UserSerializer(queryset, **params).data)
+        return selectors.pin_likers(self, pin, request)
 
     @action(methods=['get'], detail=True)
     def collections(self, request, *args, **kwargs):
-        from collects.serializers import CollectionSerializer
         pin = self.get_object()
-        queryset = pin.collections.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(CollectionSerializer(queryset, **params).data)
+        return selectors.pin_collections(self, pin, request)
+
+    @action(methods=['get'], detail=True)
+    def comments(self, request, *args, **kwargs):
+        pin = self.get_object()
+        return selectors.pin_comments(self, pin, request)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -97,11 +101,8 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     @action(methods=['get'], detail=True)
     def followers(self, request, *args, **kwargs):
-        from oauth.serializers import UserSerializer
         category = self.get_object()
-        queryset = category.followers.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(UserSerializer(queryset, **params).data)
+        return selectors.category_followers(self, category, request)
 
 
 class TopicViewSet(viewsets.ModelViewSet):
@@ -114,14 +115,5 @@ class TopicViewSet(viewsets.ModelViewSet):
 
     @action(methods=['get'], detail=True)
     def followers(self, request, *args, **kwargs):
-        from oauth.serializers import UserSerializer
         topic = self.get_object()
-        queryset = topic.followers.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(UserSerializer(queryset, **params).data)
-
-
-class TagViewSet(viewsets.ModelViewSet):
-    queryset = Tag.objects.all()
-    serializer_class = TagSerializer
-    permission_classes = [IsAdminOrReadOnly]
+        return selectors.topic_followers(self, topic, request)

@@ -1,7 +1,8 @@
 from rest_framework import mixins, viewsets
+
+from commons.permissions import IsOwnerOrReadOnly
 from follows.models import Follow
 from follows.serializers import FollowSerializer
-from commons.permissions import IsOwnerOrReadOnly
 
 
 class FollowViewSet(

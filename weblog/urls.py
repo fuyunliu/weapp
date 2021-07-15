@@ -6,5 +6,4 @@ router.register('articles', views.ArticleViewSet, 'article')
 router.register('pins', views.PinViewSet, 'pin')
 router.register('categories', views.CategoryViewSet, 'category')
 router.register('topics', views.TopicViewSet, 'topic')
-router.register('tags', views.TagViewSet, 'tag')
 urlpatterns = router.urls

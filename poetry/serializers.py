@@ -5,4 +5,4 @@ from poetry.models import Author
 class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Author
-        fields = ['url', 'name', 'dynasty', 'desc']
+        fields = '__all__'

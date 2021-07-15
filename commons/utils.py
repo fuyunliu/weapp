@@ -8,6 +8,7 @@ from datetime import datetime
 import pendulum
 from django.conf import settings
 from django.utils.timezone import is_naive, make_aware, utc
+from commons import hanzi
 
 random = secrets.SystemRandom()
 
@@ -67,3 +68,90 @@ def string_split(text):
     if not text:
         return []
     return re.split(r'[;,\s]\s*', text)
+
+
+def is_lower_alphabet(char):
+    """小写字母"""
+    return '\u0061' <= char <= '\u007A'
+
+
+def is_upper_alphabet(char):
+    """大写字母"""
+    return '\u0041' <= char <= '\u005A'
+
+
+def is_alphabet(char):
+    """英文字母"""
+    return is_lower_alphabet(char) or is_upper_alphabet(char)
+
+
+def is_whitespace(char):
+    """空白符"""
+    return char in string.whitespace
+
+
+def is_empty_string(char):
+    """空字符串"""
+    return not char
+
+
+def is_en_punctuation(char):
+    """英文标点"""
+    return char in string.punctuation
+
+
+def is_cn_punctuation(char):
+    """中文标点"""
+    return char in hanzi.punctuation
+
+
+def is_chinese(char):
+    """中文"""
+    return '\u4e00' <= char <= '\u9fff'
+
+
+def is_hyphen(char):
+    """
+    常见连字符: <>._-/
+    为了保持标签名称的干净整洁，只允许使用 `-` 作为连字符
+    """
+    return char in '-'
+
+
+def is_en_number(char):
+    """英文数字"""
+    return '\u0030' <= char <= '\u0039'
+
+
+def is_cn_number(char):
+    """中文数字"""
+    return char in hanzi.numbers
+
+
+def is_basic_latin_control_character(char):
+    return char in hanzi.basic_latin_control_characters
+
+
+def is_separator(char):
+    return (
+            is_en_punctuation(char) or
+            is_cn_punctuation(char) or
+            is_whitespace(char) or
+            is_basic_latin_control_character(char)
+    )
+
+
+def word_tokenize(text):
+    """中英文分词"""
+    chars = []
+    for char in text:
+        if is_separator(char) and not is_hyphen(char):
+            if chars:
+                if not all(map(is_hyphen, chars)):
+                    yield ''.join(chars)
+                chars = []
+        else:
+            chars.append(char)
+
+    if chars:
+        yield ''.join(chars)

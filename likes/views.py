@@ -1,7 +1,8 @@
 from rest_framework import mixins, viewsets
+
+from commons.permissions import IsOwnerOrReadOnly
 from likes.models import Like
 from likes.serializers import LikeSerializer
-from commons.permissions import IsOwnerOrReadOnly
 
 
 class LikeViewSet(

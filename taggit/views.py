@@ -1,11 +1,10 @@
 from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.utils.serializer_helpers import ReturnList
 
+from commons.permissions import IsOwnerOrReadOnly, IsAdminOrReadOnly
 from taggit.models import Tag, TaggedItem
 from taggit.serializers import TagSerializer, TaggedItemSerializer, BulkTaggedSerializer
-from commons.permissions import IsOwnerOrReadOnly, IsAdminOrReadOnly
 
 
 class TagViewSet(viewsets.ModelViewSet):

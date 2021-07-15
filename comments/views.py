@@ -1,9 +1,9 @@
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from comments.models import Comment
 from comments.serializers import CommentSerializer
 from commons.permissions import IsOwnerOrReadOnly
+from commons import selectors
 
 
 class CommentViewSet(
@@ -38,8 +38,5 @@ class CommentViewSet(
 
     @action(methods=['get'], detail=True)
     def likers(self, request, *args, **kwargs):
-        from oauth.serializers import UserSerializer
         comment = self.get_object()
-        queryset = comment.likers.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(UserSerializer(queryset, **params).data)
+        return selectors.comment_likers(self, comment, request)

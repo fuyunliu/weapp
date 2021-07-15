@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
-from follows.models import Follow
 from commons.fields.serializers import ContentTypeNaturalKeyField, GenericRelatedField, CheckContentTypeMixin
+from follows.models import Follow
 
 
 class FollowSerializer(CheckContentTypeMixin, serializers.ModelSerializer):

@@ -30,7 +30,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ['user_id', 'nickname', 'gender', 'birthday', 'location', 'about_me', 'avatar']
+        fields = '__all__'
         read_only_fields = ['nickname']
 
     def get_avatar(self, obj):

@@ -134,7 +134,7 @@ class DynamicFieldsMixin:
         # 排除字段
         exclude and remove.extend(exclude)
         # 扩展字段
-        expand and remove.extend(expandable_fields - set(expand))
+        remove.extend(expandable_fields - set(expand))
 
         # 取交集以去除非法字段
         return list(set(remove) & all_fields)

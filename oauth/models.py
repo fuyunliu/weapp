@@ -1,9 +1,11 @@
 import hashlib
 import urllib.parse as urlparse
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, Group, Permission, UserManager as _UserManager
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
+from django.db.models.expressions import F
 from django.db.models.manager import EmptyManager
 from django.db.models.signals import post_save
 from django.utils import timezone
@@ -122,6 +124,7 @@ class Profile(models.Model):
     birthday = models.DateField('生日', null=True, blank=True)
     location = models.CharField('地区', max_length=64, blank=True)
     about_me = models.TextField('签名', blank=True)
+    view_count = models.PositiveIntegerField('浏览量', default=0, editable=False)
     nick_mtime = models.DateTimeField('改名时间', default=_nickname_mtime, editable=False)
 
     class Meta:
@@ -137,6 +140,11 @@ class Profile(models.Model):
         if not self.nickname:
             self.set_nickname()
         super().save(*args, **kwargs)
+
+    def viewed(self):
+        self.view_count = F('view_count') + 1
+        self.save(update_fields=['view_count'])
+        self.refresh_from_db()
 
     def is_owned(self, user):
         return self.user == user

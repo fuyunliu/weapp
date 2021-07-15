@@ -1,8 +1,8 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from polls.models import Question, Choice, Vote
 
 from commons.constants import Messages
+from polls.models import Question, Choice, Vote
 
 
 class QuestionSerializer(serializers.ModelSerializer):

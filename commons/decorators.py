@@ -5,8 +5,8 @@ from rest_framework.response import Response
 def paginate(serializer_class):
     def decorator(func):
         @wraps(func)
-        def wrapped(view, user, request):
-            queryset = func(view, user, request)
+        def wrapped(view, instance, request):
+            queryset = func(view, instance, request)
             page = view.paginate_queryset(queryset)
             if page is not None:
                 serializer = serializer_class(page, many=True)

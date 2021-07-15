@@ -1,11 +1,12 @@
 from rest_framework import mixins, viewsets
+
+from commons.permissions import IsOwnerOrReadOnly
 from polls.models import Question, Choice, Vote
 from polls.serializers import QuestionSerializer, ChoiceSerializer, VoteSerializer
-from commons.permissions import IsOwnerOrReadOnly
 
 
 class QuestionViewSet(viewsets.ModelViewSet):
-    queryset = Question.objects.all().select_related('owner')
+    queryset = Question.objects.all().select_related('owner').prefetch_related('choices')
     serializer_class = QuestionSerializer
     permission_classes = [IsOwnerOrReadOnly]
 

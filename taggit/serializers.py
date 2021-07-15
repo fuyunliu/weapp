@@ -1,13 +1,13 @@
 from operator import itemgetter
+
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from rest_framework.utils.serializer_helpers import ReturnList
 
-from taggit.models import Tag, TaggedItem
 from commons.constants import Messages
 from commons.fields.serializers import ContentTypeNaturalKeyField, GenericRelatedField, CheckContentTypeMixin
-from commons.utils import string_split
+from commons.utils import word_tokenize
+from taggit.models import Tag, TaggedItem
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -47,14 +47,14 @@ class TaggedItemSerializer(CheckContentTypeMixin, serializers.ModelSerializer):
 class BulkTaggedSerializer(CheckContentTypeMixin, serializers.ModelSerializer):
     content_type = ContentTypeNaturalKeyField(label='内容类型')
     object_id = serializers.IntegerField(label='对象主键', min_value=0, required=True)
-    tags = serializers.CharField(label='标签', allow_blank=True, help_text='多标签使用空格、逗号或分号分隔。')
+    tags = serializers.CharField(label='标签', allow_blank=True, help_text='多标签可被任意除连字符 `-` 以外的符号分隔。')
 
     class Meta:
         model = TaggedItem
         fields = ['content_type', 'object_id', 'tags']
 
     def validate_tags(self, value):
-        return string_split(value)
+        return list(word_tokenize(value))
 
     def validate(self, attrs):
         # 多重继承中的父类均有相同的子方法按照`__mro__`顺序查找并执行

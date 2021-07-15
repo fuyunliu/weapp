@@ -1,10 +1,10 @@
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
-from rest_framework.response import Response
 
 from collects.models import Collect, Collection
 from collects.serializers import CollectionSerializer, CollectSerializer
 from commons.permissions import IsOwnerOrReadOnly
+from commons import selectors
 
 
 class CollectionViewSet(viewsets.ModelViewSet):
@@ -27,35 +27,23 @@ class CollectionViewSet(viewsets.ModelViewSet):
 
     @action(methods=['get'], detail=True)
     def articles(self, request, *args, **kwargs):
-        from weblog.serializers import ArticleSerializer
         collection = self.get_object()
-        queryset = collection.articles.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(ArticleSerializer(queryset, **params).data)
+        return selectors.collection_articles(self, collection, request)
 
     @action(methods=['get'], detail=True)
     def pins(self, request, *args, **kwargs):
-        from weblog.serializers import PinSerializer
         collection = self.get_object()
-        queryset = collection.pins.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(PinSerializer(queryset, **params).data)
+        return selectors.collection_pins(self, collection, request)
 
     @action(methods=['get'], detail=True)
     def likers(self, request, *args, **kwargs):
-        from oauth.serializers import UserSerializer
         collection = self.get_object()
-        queryset = collection.likers.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(UserSerializer(queryset, **params).data)
+        return selectors.collection_likers(self, collection, request)
 
     @action(methods=['get'], detail=True)
     def followers(self, request, *args, **kwargs):
-        from oauth.serializers import UserSerializer
         collection = self.get_object()
-        queryset = collection.followers.all()
-        params = {'context': {'request': self.request}, 'many': True}
-        return Response(UserSerializer(queryset, **params).data)
+        return selectors.collection_followers(self, collection, request)
 
 
 class CollectViewSet(

@@ -1,3 +1,5 @@
+from functools import partial
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -142,15 +144,11 @@ class UserViewSet(viewsets.ModelViewSet):
         self.permission_classes = action_perms.get(self.action, self.permission_classes)
         return super().get_permissions()
 
-    def get_serializer(self, *args, **kwargs):
-        serializer_class = self.get_serializer_class()
-        kwargs.setdefault('context', self.get_serializer_context())
-        if self.action == 'list' or self.action == 'retrieve':
-            kwargs['expand'] = ['is_following', 'is_followed']
-        return serializer_class(*args, **kwargs)
-
     def get_serializer_class(self):
+        UserFollowSerializer = partial(UserSerializer, expand=['is_following', 'is_followed'])
         action_seres = {
+            'list': UserFollowSerializer,
+            'retrieve': UserFollowSerializer,
             'create': UserCreateSerializer,
             'destroy': UserDestroySerializer,
             'set_email': SetEmailSerializer,
@@ -240,6 +238,7 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(methods=['get'], detail=True)
     def profile(self, request, *args, **kwargs):
         user = self.get_object()
+        user.profile.viewed()
         return Response(ProfileSerializer(user.profile).data)
 
     @action(methods=['get'], detail=True)
@@ -339,6 +338,12 @@ class ProfileViewSet(
         user = self.request.user
         profile = user.profile
         return profile
+
+    def retrieve(self, request, *args, **kwargs):
+        profile = self.get_object()
+        profile.viewed()
+        serializer = self.get_serializer(profile)
+        return Response(serializer.data)
 
     @action(['get'], detail=False)
     def me(self, request, *args, **kwargs):

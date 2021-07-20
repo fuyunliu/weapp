@@ -1,6 +1,7 @@
 from django.conf import settings
-from django.contrib.auth import authenticate, get_user_model
-from django.contrib.auth.models import Group, update_last_login
+from django.core.validators import EmailValidator
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
 from django.utils import timezone
@@ -11,9 +12,10 @@ from rest_framework.settings import api_settings
 from commons import utils
 from commons.constants import Messages, CacheKeySet
 from commons.fields.serializers import DynamicFieldsMixin
-from commons.fields.serializers import PhoneField, PhoneCodeField, PasswordField, TimesinceField
-from oauth import login_user, logout_user, user_can_authenticate
-from oauth.email import PhoneCodeEmail
+from commons.fields.serializers import PhoneField, CaptchaField, PasswordField, TimesinceField
+from commons.fields.phonenumber import PhoneNumber
+from oauth import user_can_authenticate
+from oauth.email import CaptchaEmail
 from oauth.models import Profile
 
 UserModel = get_user_model()
@@ -121,38 +123,47 @@ class UserDestroySerializer(serializers.Serializer):
             raise ValidationError(Messages.WRONG_PASSWORD)
         return value
 
-    def validate(self, attrs):
-        request = self.context['request']
-        if self.instance == request.user:
-            logout_user(request)
-        return attrs
 
-
-class PhoneCodeSerializer(serializers.Serializer):
-    phone = PhoneField(label='手机号')
+class SendCaptchaSerializer(serializers.Serializer):
+    authname = serializers.CharField(label='邮箱/手机号')
     tape = serializers.ChoiceField(choices=['gettoken', 'setpasswd', 'setemail', 'setphone'], label='类型')
 
-    def validate(self, attrs):
-        phone_code = utils.get_random_number()
-        key = CacheKeySet.PHONE_CODE.format(field='phone', value=attrs['phone'], tape=attrs['tape'])
-        timeout = settings.ACCESS_CODE_LIFETIME.total_seconds()
-        cache.set(key, phone_code, timeout=timeout)
-        print(f'Send phone code: {phone_code}')
-        return {}
-
-
-class EmailCodeSerializer(serializers.Serializer):
-    email = serializers.EmailField(label='邮箱')
-    tape = serializers.ChoiceField(choices=['gettoken', 'setpasswd', 'setemail', 'setphone'], label='类型')
+    default_error_messages = {
+        'invalid_authname': Messages.INVALID_AUTHNAME
+    }
 
     def validate(self, attrs):
-        phone_code = utils.get_random_number()
-        key = CacheKeySet.PHONE_CODE.format(field='email', value=attrs['email'], tape=attrs['tape'])
-        timeout = settings.ACCESS_CODE_LIFETIME.total_seconds()
-        cache.set(key, phone_code, timeout=timeout)
-        context = {'digits': phone_code}
-        PhoneCodeEmail(context=context).send([attrs['email']])
-        return {}
+        tape = attrs['tape']
+        authname = attrs['authname']
+        captcha = utils.get_random_number()
+        timeout = settings.CAPTCHA_LIFETIME.total_seconds()
+
+        try:
+            # 合法的 Email
+            EmailValidator()(authname)
+
+            # 设置验证码
+            key = CacheKeySet.CAPTCHA.format(field='email', value=authname, tape=tape)
+            cache.set(key, captcha, timeout=timeout)
+            CaptchaEmail(context={'tape': tape, 'captcha': captcha}).send([authname])
+            return {}
+        except serializers.DjangoValidationError:
+            pass
+
+        try:
+            # 合法的 Phone
+            PhoneNumber.validate_phone(authname)
+
+            # 设置验证码
+            key = CacheKeySet.CAPTCHA.format(field='phone', value=authname, tape=tape)
+            cache.set(key, captcha, timeout=timeout)
+            print(f'Send Captcha: {captcha}')
+            return {}
+        except serializers.DjangoValidationError:
+            pass
+
+        # 均不合法触发警告
+        self.fail('invalid_authname')
 
 
 class SetUsernameSerializer(serializers.ModelSerializer):
@@ -193,18 +204,18 @@ class SetNicknameSerializer(serializers.ModelSerializer):
 class SetPasswordSerializer(serializers.Serializer):
     new_password = PasswordField(label='新密码')
     new_password2 = PasswordField(label='确认新密码')
-    phone_code = PhoneCodeField(label='验证码')
+    captcha = CaptchaField(label='验证码')
 
     def validate(self, attrs):
         if attrs['new_password'] != attrs.pop('new_password2'):
             raise ValidationError({'new_password2': Messages.PASSWORD_MISMATCH})
 
-        phone_code = attrs.pop('phone_code')
-        ekey = CacheKeySet.PHONE_CODE.format(field='email', value=self.instance.email, tape='setpasswd')
-        pkey = CacheKeySet.PHONE_CODE.format(field='phone', value=self.instance.phone, tape='setpasswd')
+        captcha = attrs.pop('captcha')
+        ekey = CacheKeySet.CAPTCHA.format(field='email', value=self.instance.email, tape='setpasswd')
+        pkey = CacheKeySet.CAPTCHA.format(field='phone', value=self.instance.phone, tape='setpasswd')
         value = cache.get(ekey) or cache.get(pkey)
-        if value is None or value != phone_code:
-            raise ValidationError({'phone_code': Messages.WRONG_PHONE_CODE})
+        if value is None or value != captcha:
+            raise ValidationError({'captcha': Messages.WRONG_CAPTCHA})
 
         try:
             validate_password(attrs['new_password'])
@@ -217,7 +228,7 @@ class SetPasswordSerializer(serializers.Serializer):
 
 class SetEmailSerializer(serializers.Serializer):
     email = serializers.EmailField(label='新邮箱')
-    phone_code = PhoneCodeField(label='验证码')
+    captcha = CaptchaField(label='验证码')
 
     def validate_email(self, value):
         if UserModel.objects.filter(email=value).exists():
@@ -225,17 +236,17 @@ class SetEmailSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        phone_code = attrs.pop('phone_code')
-        key = CacheKeySet.PHONE_CODE.format(field='email', value=attrs['email'], tape='setemail')
+        captcha = attrs.pop('captcha')
+        key = CacheKeySet.CAPTCHA.format(field='email', value=attrs['email'], tape='setemail')
         value = cache.get(key)
-        if value is None or value != phone_code:
-            raise ValidationError({'phone_code': Messages.WRONG_PHONE_CODE})
+        if value is None or value != captcha:
+            raise ValidationError({'phone_code': Messages.WRONG_CAPTCHA})
         return attrs
 
 
 class SetPhoneSerializer(serializers.Serializer):
     phone = PhoneField(label='新手机号')
-    phone_code = PhoneCodeField(label='验证码')
+    captcha = CaptchaField(label='验证码')
 
     def validate_phone(self, value):
         if UserModel.objects.filter(phone=value).exists():
@@ -243,70 +254,69 @@ class SetPhoneSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        phone_code = attrs.pop('phone_code')
-        key = CacheKeySet.PHONE_CODE.format(field='phone', value=attrs['phone'], tape='setphone')
+        captcha = attrs.pop('captcha')
+        key = CacheKeySet.CAPTCHA.format(field='phone', value=attrs['phone'], tape='setphone')
         value = cache.get(key)
-        if value is None or value != phone_code:
-            raise ValidationError({'phone_code': Messages.WRONG_PHONE_CODE})
+        if value is None or value != captcha:
+            raise ValidationError({'phone_code': Messages.WRONG_CAPTCHA})
         return attrs
 
 
-class PhoneAndCodeSerializer(serializers.Serializer):
-    phone = PhoneField(label='手机号')
-    phone_code = PhoneCodeField(label='验证码')
+class CaptchaLoginSerializer(serializers.Serializer):
+    authname = serializers.CharField(label='邮箱/手机号')
+    captcha = CaptchaField(label='验证码')
 
     default_error_messages = {
+        'invalid_authname': Messages.INVALID_AUTHNAME,
         'inactive_user': Messages.USER_INACTIVE
     }
 
     def validate(self, attrs):
-        phone_code = attrs.pop('phone_code')
-        user, _ = UserModel.objects.get_or_create(**attrs)
+        captcha = attrs.pop('captcha')
+        authname = attrs['authname']
+
+        user = None
+        try:
+            # 合法的 Email
+            EmailValidator()(authname)
+
+            # 校验验证码
+            key = CacheKeySet.CAPTCHA.format(field='email', value=authname, tape='gettoken')
+            value = cache.get(key)
+            if value is None or value != captcha:
+                raise ValidationError({'captcha': Messages.WRONG_CAPTCHA})
+
+            # 查找用户或者创建新用户
+            user, _ = UserModel.objects.get_or_create(email=authname)
+        except serializers.DjangoValidationError:
+            pass
+
+        try:
+            # 合法的 Phone
+            PhoneNumber.validate_phone(authname)
+
+            # 校验验证码
+            key = CacheKeySet.CAPTCHA.format(field='phone', value=authname, tape='gettoken')
+            value = cache.get(key)
+            if value is None or value != captcha:
+                raise ValidationError({'captcha': Messages.WRONG_CAPTCHA})
+
+            # 查找用户或者创建新用户
+            user, _ = UserModel.objects.get_or_create(phone=authname)
+        except serializers.DjangoValidationError:
+            pass
+
+        if user is None:
+            self.fail('invalid_authname')
         if not user_can_authenticate(user):
             self.fail('inactive_user')
 
-        key = CacheKeySet.PHONE_CODE.format(field='phone', value=attrs['phone'], tape='gettoken')
-        value = cache.get(key)
-        if value is None or value != phone_code:
-            raise ValidationError({'digits': Messages.WRONG_PHONE_CODE})
-
-        data = {}
-        request = self.context['request']
-        token = login_user(request, user)
-        data['access'] = str(token)
-        update_last_login(None, user)
-        return data
+        attrs['instance'] = user
+        return attrs
 
 
-class EmailAndCodeSerializer(serializers.Serializer):
-    email = serializers.EmailField(label='邮箱')
-    phone_code = PhoneCodeField(label='验证码')
-
-    default_error_messages = {
-        'inactive_user': Messages.USER_INACTIVE
-    }
-
-    def validate(self, attrs):
-        phone_code = attrs.pop('phone_code')
-        user, _ = UserModel.objects.get_or_create(**attrs)
-        if not user_can_authenticate(user):
-            self.fail('inactive_user')
-
-        key = CacheKeySet.PHONE_CODE.format(field='email', value=attrs['email'], tape='gettoken')
-        value = cache.get(key)
-        if value is None or value != phone_code:
-            raise ValidationError({'phone_code': Messages.WRONG_PHONE_CODE})
-
-        data = {}
-        request = self.context['request']
-        token = login_user(request, user)
-        data['access'] = str(token)
-        update_last_login(None, user)
-        return data
-
-
-class PhoneAndPasswordSerializer(serializers.Serializer):
-    phone = PhoneField(label='手机号')
+class PasswordLoginSerializer(serializers.Serializer):
+    authname = serializers.CharField(label='用户名/邮箱/手机号')
     password = PasswordField(label='密码')
 
     default_error_messages = {
@@ -316,7 +326,31 @@ class PhoneAndPasswordSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         password = attrs.pop('password')
-        user = UserModel.objects.filter(**attrs).first()
+        authname = attrs['authname']
+
+        user = None
+        try:
+            # 合法的 Email
+            EmailValidator()(authname)
+
+            # 查找用户
+            user = UserModel.objects.filter(email=authname).first()
+        except serializers.DjangoValidationError:
+            pass
+
+        try:
+            # 合法的 Phone
+            PhoneNumber.validate_phone(authname)
+
+            # 查找用户
+            user = UserModel.objects.filter(phone=authname).first()
+        except serializers.DjangoValidationError:
+            pass
+
+        # 根据用户名查找
+        if user is None:
+            user = UserModel.objects.filter(username=authname).first()
+
         if user is None:
             self.fail('user_not_exist')
         if not user.check_password(password):
@@ -324,66 +358,5 @@ class PhoneAndPasswordSerializer(serializers.Serializer):
         if not user_can_authenticate(user):
             self.fail('inactive_user')
 
-        request = self.context['request']
-        user = authenticate(request=request, **attrs, password=password)
-        data = {}
-        token = login_user(request, user)
-        data['access'] = str(token)
-        update_last_login(None, user)
-        return data
-
-
-class EmailAndPasswordSerializer(serializers.Serializer):
-    email = serializers.EmailField(label='邮箱')
-    password = PasswordField(label='密码')
-
-    default_error_messages = {
-        'user_not_exist': Messages.USER_NOT_FOUND,
-        'inactive_user': Messages.USER_INACTIVE
-    }
-
-    def validate(self, attrs):
-        password = attrs.pop('password')
-        user = UserModel.objects.filter(**attrs).first()
-        if user is None:
-            self.fail('user_not_exist')
-        if not user.check_password(password):
-            raise ValidationError({'password': Messages.WRONG_PASSWORD})
-        if not user_can_authenticate(user):
-            self.fail('inactive_user')
-
-        request = self.context['request']
-        user = authenticate(request=request, **attrs, password=password)
-        data = {}
-        token = login_user(request, user)
-        data['access'] = str(token)
-        update_last_login(None, user)
-        return data
-
-
-class UsernameAndPasswordSerializer(serializers.Serializer):
-    username = serializers.CharField(label='用户名')
-    password = PasswordField(label='密码')
-
-    default_error_messages = {
-        'user_not_exist': Messages.USER_NOT_FOUND,
-        'inactive_user': Messages.USER_INACTIVE
-    }
-
-    def validate(self, attrs):
-        password = attrs.pop('password')
-        user = UserModel.objects.filter(**attrs).first()
-        if user is None:
-            self.fail('user_not_exist')
-        if not user.check_password(password):
-            raise ValidationError({'password': Messages.WRONG_PASSWORD})
-        if not user_can_authenticate(user):
-            self.fail('inactive_user')
-
-        request = self.context['request']
-        user = authenticate(request=request, **attrs, password=password)
-        data = {}
-        token = login_user(request, user)
-        data['access'] = str(token)
-        update_last_login(None, user)
-        return data
+        attrs['instance'] = user
+        return attrs

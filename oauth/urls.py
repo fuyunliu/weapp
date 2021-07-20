@@ -1,4 +1,4 @@
-from django.urls import path, include
+from django.urls import path
 from rest_framework import routers
 from oauth import views
 
@@ -8,6 +8,6 @@ router.register('profiles', views.ProfileViewSet, 'profile')
 router.register('groups', views.GroupViewSet, 'group')
 urlpatterns = router.urls
 urlpatterns += [
-    path('token/', views.TokenAPIView.as_view(), name='token'),
-    path('phonecode/', views.PhoneCodeView.as_view(), name='phonecode')
+    path('token/', views.TokenView.as_view(), name='token'),
+    path('captcha/', views.CaptchaView.as_view(), name='captcha')
 ]

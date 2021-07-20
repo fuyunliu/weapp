@@ -130,11 +130,11 @@ USERNAME_RANDOM_NAMESPACE = 'uid'
 PHONENUMBER_DEFAULT_REGION = 'CN'
 USERNAME_MODIFY_TIMEDELTA = timedelta(days=365)
 NICKNAME_MODIFY_TIMEDELTA = timedelta(days=90)
-DESTROY_USER_TIMEDELTA = timedelta(days=14)
+USER_DESTROY_TIMEDELTA = timedelta(days=14)
 
 # https://github.com/SimpleJWT/django-rest-framework-simplejwt#settings
 ACCESS_TOKEN_LIFETIME = timedelta(minutes=10)
-ACCESS_CODE_LIFETIME = timedelta(minutes=10)
+CAPTCHA_LIFETIME = timedelta(minutes=10)
 USER_ID_FIELD = 'id'
 USER_ID_CLAIM = 'user_id'
 

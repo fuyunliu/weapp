@@ -12,8 +12,3 @@ def send_email(messages, backend_kwargs=None, **kwargs):
         num_sent = conn.send_messages(messages)
 
     return num_sent
-
-
-@shared_task
-def send_digits(digits):
-    print(f'Send phone digits: {digits}')

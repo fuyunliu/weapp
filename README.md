@@ -9,3 +9,17 @@
 3. 重定向(300–399)
 4. 客户端错误(400–499)
 5. 服务器错误 (500–599)
+
+Redis Key 命名规范
+
+`oauth:users:uid:1234:username`
+
+`oauth:users:uid:1234:nickname`
+
+`oauth:gettoken:email:123456@qq.com:captcha`
+
+`oauth:setpasswd:phone:123456:captcha`
+
+`oauth:setemail:email:123456@qq.com:captcha`
+
+`oauth:setphone:phone:123456:captcha`

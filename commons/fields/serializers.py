@@ -1,16 +1,21 @@
+import re
+import functools
+
 from django.apps import apps
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.validators import RegexValidator
 from django.contrib.contenttypes.models import ContentType
 from django.utils.module_loading import import_string
 from rest_framework.exceptions import ValidationError
-from rest_framework.fields import CharField, ReadOnlyField
+from rest_framework.fields import CharField, ReadOnlyField, RegexField
 from rest_framework.relations import RelatedField
 
 from commons.constants import Messages
 from commons.fields.phonenumber import PhoneNumber
 from commons.utils import timesince
+
+
+CaptchaField = functools.partial(RegexField, regex=re.compile(r'^\d{6}$'))
 
 
 class TimesinceField(ReadOnlyField):
@@ -35,13 +40,6 @@ class PasswordField(CharField):
         kwargs.setdefault('style', {})
         kwargs['style']['input_type'] = 'password'
         kwargs['write_only'] = True
-        super().__init__(**kwargs)
-
-
-class PhoneCodeField(CharField):
-
-    def __init__(self, **kwargs):
-        kwargs['validators'] = [RegexValidator(regex=r'^\d{6}$', message='Please enter 6 digits.')]
         super().__init__(**kwargs)
 
 

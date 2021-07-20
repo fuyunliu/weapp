@@ -25,8 +25,10 @@ class TokenAuthentication(BaseAuthentication):
 
         validated_token = self.get_validated_token(raw_token, request)
         user = self.get_model_user(validated_token)
-        # 认证成功，刷新请求时间
+
+        # 认证成功，记录本次请求时间
         request.session['last_seen'] = make_timestamp(aware_utcnow())
+
         return (user, validated_token)
 
     def authenticate_header(self, request):
@@ -34,22 +36,27 @@ class TokenAuthentication(BaseAuthentication):
 
     def get_validated_token(self, raw_token, request):
         try:
+            # 不校验token获取负载信息
             payload = token_backend.get_unverified_payload(raw_token)
 
-            # 用户每次登入生成 token，并将 token_id 记录到 session 中
-            # 因为下面的续期规则，避免用户继续使用旧的token
+            # 每次登入生成新的token，为了使旧的token失效但是不想在后端存储token，将新生成的token_id记录在session中。
+            # 每次请求过来时，从负载payload中获取token_id，并和session中的token_id进行对比，不相同则认证失败。
             token_id = payload['jti']
             assert 'token_id' in request.session, Messages.TOKEN_NOT_FOUND
             assert token_id == request.session['token_id'], Messages.TOKEN_MISMATCH
 
-            from_time = payload['iat']  # 签发时间
+            # 为了给token续期，计算需要给token续期的时长，这个时长叫leeway，也就是允许token过期的时长。
+            issue_time = payload['iat']  # 签发时间
             expire_time = payload['exp']  # 到期时间
+
             last_seen = request.session['last_seen']  # 上次请求时间
             current_time = make_timestamp(aware_utcnow())  # 当前请求时间
+
             elapsed = current_time - last_seen  # 请求时间间隔
-            lifetime = expire_time - from_time  # token的有效时长
-            # 如果请求时间间隔小于 token 的有效时长，则为 token 续期，以达到长期有效的目的。
-            leeway = (current_time - from_time) if elapsed < lifetime else 0
+            lifetime = expire_time - issue_time  # token的有效期
+
+            # 如果请求时间间隔小于token的有效期，则为token续期，以达到长期有效的目的。
+            leeway = (current_time - issue_time) if elapsed < lifetime else 0
             return AccessToken(raw_token, leeway=leeway)
         except Exception as e:
             raise AuthenticationFailed(str(e))

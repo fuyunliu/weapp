@@ -1,0 +1,23 @@
+{% block subject %}
+    Account deleted as planned
+{% endblock %}
+
+{% block text_body %}
+    Hello {{ username }}
+
+    We have received a request to permanently delete the account.
+
+    Your account has been closed from the site, and will be completely removed within {{ days }} days.
+
+    If there is no request to delete the account permanently, please login and cancel the request.
+{% endblock %}
+
+{% block html_body %}
+    <b>Hello {{ username }}</b>
+
+    <p>We have received a request to permanently delete the account.</p>
+
+    <p>Your account has been closed from the site, and will be completely removed within {{ days }} days.</p>
+
+    <p>If there is no request to delete the account permanently, please login and cancel the request.</p>
+{% endblock %}

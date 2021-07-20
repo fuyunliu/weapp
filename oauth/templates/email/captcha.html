@@ -1,0 +1,19 @@
+{% block subject %}
+    Your temporary {{ tape|title }} captcha is {{ captcha }}
+{% endblock %}
+
+{% block text_body %}
+    Your {{ tape|title }} captcha:
+
+    {{ captcha }}
+
+    If you didn't try to {{ tape }}, you can safely ignore this email.
+{% endblock %}
+
+{% block html_body %}
+    <h1>Your {{ tape|title }} captcha</h1>
+
+    <pre>{{ captcha }}</pre>
+
+    If you didn't try to {{ tape }}, you can safely ignore this email.
+{% endblock %}

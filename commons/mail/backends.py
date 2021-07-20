@@ -13,5 +13,5 @@ class CeleryEmailBackend(BaseEmailBackend):
     def send_messages(self, email_messages):
         results = []
         for chunk in chunks(email_messages, settings.CELERY_EMAIL_CHUNK_SIZE):
-            results.append(send_email.delay(chunk), self.back_kwargs)
+            results.append(send_email.delay(chunk, self.back_kwargs))
         return results

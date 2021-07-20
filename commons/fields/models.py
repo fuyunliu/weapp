@@ -33,7 +33,7 @@ class PhoneField(CharField):
     attr_class = PhoneNumber
     descriptor_class = PhoneDescriptor
     default_validators = [PhoneNumber.validate_phone]
-    description = 'Phone number'
+    description = 'Phone Number'
 
     def __init__(self, *args, region=None, **kwargs):
         kwargs.setdefault('max_length', 128)

@@ -11,8 +11,8 @@ from rest_framework.response import Response
 
 from commons import selectors
 from commons.permissions import IsMeOrAdmin, IsOwnerOrAdmin
-from oauth import logout_user
-from oauth.email import DestroyUserEmail
+from oauth import login_user, logout_user
+from oauth.email import UserDestroyEmail
 from oauth.models import Profile
 from oauth.serializers import (
     GroupSerializer,
@@ -20,25 +20,30 @@ from oauth.serializers import (
     UserSerializer,
     UserCreateSerializer,
     UserDestroySerializer,
-    PhoneCodeSerializer,
-    EmailCodeSerializer,
+    SendCaptchaSerializer,
     SetPhoneSerializer,
     SetEmailSerializer,
     SetUsernameSerializer,
     SetNicknameSerializer,
     SetPasswordSerializer,
-    PhoneAndCodeSerializer,
-    EmailAndCodeSerializer,
-    PhoneAndPasswordSerializer,
-    EmailAndPasswordSerializer,
-    UsernameAndPasswordSerializer
+    CaptchaLoginSerializer,
+    PasswordLoginSerializer
 )
 from oauth.tasks import destroy_user
 
 UserModel = get_user_model()
 
 
-class TokenAPIView(views.APIView):
+class CaptchaView(views.APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = SendCaptchaSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class TokenView(views.APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -51,9 +56,12 @@ class TokenAPIView(views.APIView):
         return Response(data, status=status.HTTP_201_CREATED)
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer_class = self.get_serializer_class()
+        serializer = serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data, status=status.HTTP_201_CREATED)
+        token = login_user(request, serializer.validated_data['instance'])
+        data = {'access': str(token)}
+        return Response(data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, *args, **kwargs):
         logout_user(request)
@@ -64,56 +72,16 @@ class TokenAPIView(views.APIView):
             self.permission_classes = [AllowAny]
         return super().get_permissions()
 
-    def get_serializer(self, *args, **kwargs):
-        serializer_class = self.get_serializer_class()
-        ctx = {'request': self.request, 'format': self.format_kwarg, 'view': self}
-        kwargs.setdefault('context', ctx)
-        return serializer_class(*args, **kwargs)
-
     def get_serializer_class(self):
         data = self.request.data
         if self.request.method == 'POST':
-            if 'phone_code' in data:
-                if 'phone' in data:
-                    return PhoneAndCodeSerializer
-                elif 'email' in data:
-                    return EmailAndCodeSerializer
+            if 'captcha' in data:
+                return CaptchaLoginSerializer
             elif 'password' in data:
-                if 'username' in data:
-                    return UsernameAndPasswordSerializer
-                elif 'email' in data:
-                    return EmailAndPasswordSerializer
-                elif 'phone' in data:
-                    return PhoneAndPasswordSerializer
+                return PasswordLoginSerializer
             else:
-                return PhoneAndCodeSerializer
-        return PhoneAndCodeSerializer
-
-
-class PhoneCodeView(views.APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    def get_serializer(self, *args, **kwargs):
-        serializer_class = self.get_serializer_class()
-        ctx = {'request': self.request, 'format': self.format_kwarg, 'view': self}
-        kwargs.setdefault('context', ctx)
-        return serializer_class(*args, **kwargs)
-
-    def get_serializer_class(self):
-        data = self.request.data
-        if self.request.method == 'POST':
-            if 'phone' in data:
-                return PhoneCodeSerializer
-            elif 'email' in data:
-                return EmailCodeSerializer
-            else:
-                return PhoneCodeSerializer
-        return PhoneCodeSerializer
+                return CaptchaLoginSerializer
+        return CaptchaLoginSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -163,14 +131,19 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.get_object()
         serializer = self.get_serializer(user, data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        if user == request.user:
+            logout_user(request)
+
         self.perform_destroy(user)
-        DestroyUserEmail(request).send([user.email])
+        UserDestroyEmail(request).send([user.email])
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def perform_destroy(self, instance):
         instance.is_active = False
         instance.save(update_fields=['is_active'])
-        destroy_user.apply_async((instance.pk,), eta=timezone.now() + settings.DESTROY_USER_TIMEDELTA, expires=60)
+        destroy_user.apply_async((instance.pk,), eta=timezone.now() + settings.USER_DESTROY_TIMEDELTA, expires=60)
 
     @action(['get'], detail=False)
     def me(self, request, *args, **kwargs):

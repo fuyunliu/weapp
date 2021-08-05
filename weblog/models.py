@@ -60,7 +60,7 @@ class Article(models.Model):
         return self.title
 
     def save(self, *args, **kwargs):
-        self.slug = slugify(self.title, allow_unicode=True)
+        self.slug = self._unique_slug()
         self.body_html = markdown(self.body, extensions=['fenced_code', 'codehilite'])
         super().save(*args, **kwargs)
 
@@ -74,6 +74,14 @@ class Article(models.Model):
 
     def is_owned(self, user):
         return self.author == user
+
+    def _unique_slug(self):
+        num = 1
+        unique_slug = slugify(self.title, allow_unicode=True)
+        while self.__class__.objects.filter(slug=unique_slug).exists():
+            unique_slug = f'{unique_slug}-{num}'
+            num += 1
+        return unique_slug
 
 
 class Pin(models.Model):

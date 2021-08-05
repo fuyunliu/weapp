@@ -28,15 +28,11 @@ class GroupSerializer(serializers.ModelSerializer):
 
 
 class ProfileSerializer(serializers.ModelSerializer):
-    avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = Profile
         fields = '__all__'
         read_only_fields = ['nickname']
-
-    def get_avatar(self, obj):
-        return obj.gravatar()
 
 
 class UserSerializer(DynamicFieldsMixin, serializers.ModelSerializer):
@@ -54,16 +50,10 @@ class UserSerializer(DynamicFieldsMixin, serializers.ModelSerializer):
         expandable_fields = ['is_following', 'is_followed']
 
     def get_is_following(self, obj):
-        return (
-            (hasattr(obj, 'following_id') and obj.following_id is not None) or
-            (hasattr(obj, 'is_following') and obj.is_following)
-        )
+        return hasattr(obj, 'is_following') and bool(obj.is_following)
 
     def get_is_followed(self, obj):
-        return (
-            (hasattr(obj, 'followed_id') and obj.followed_id is not None) or
-            (hasattr(obj, 'is_followed') and obj.is_followed)
-        )
+        return hasattr(obj, 'is_followed') and bool(obj.is_followed)
 
 
 class UserCreateSerializer(serializers.ModelSerializer):

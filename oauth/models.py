@@ -80,6 +80,10 @@ class User(AbstractUser):
         ordering = ['id']
         get_latest_by = 'id'
 
+    @property
+    def nickname(self):
+        return self.profile.nickname
+
     def save(self, *args, **kwargs):
         if not self.username:
             self.set_username()
@@ -105,6 +109,16 @@ class User(AbstractUser):
                 self.username = name
                 self.name_mtime = timezone.now()
                 break
+
+    def gravatar(self, size=80):
+        url = "https://gravatar.loli.top/avatar"
+        hash = hashlib.md5(self.email.lower().encode('utf-8')).hexdigest()
+        query = {
+            's': size,
+            'd': 'identicon',
+            'r': 'g'
+        }
+        return f'{url}/{hash}?{urlparse.urlencode(query)}'
 
 
 class Profile(models.Model):
@@ -167,16 +181,6 @@ class Profile(models.Model):
                 self.nickname = name
                 self.nick_mtime = timezone.now()
                 break
-
-    def gravatar(self, size=80):
-        url = "https://gravatar.loli.top/avatar"
-        hash = hashlib.md5(self.user.email.lower().encode('utf-8')).hexdigest()
-        query = {
-            's': size,
-            'd': 'identicon',
-            'r': 'g'
-        }
-        return f'{url}/{hash}?{urlparse.urlencode(query)}'
 
 
 def create_profile(sender, **kwargs):

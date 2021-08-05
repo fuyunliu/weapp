@@ -2,6 +2,7 @@ from functools import partial
 
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
+from django.db.models.aggregates import Count
 from django.db.models.expressions import Col, Value
 from django.db.models.fields import BooleanField
 from django.db.models.sql.constants import LOUTER
@@ -31,9 +32,14 @@ def select_article(queryset, request):
     join = GenericJoin(Article, Like, LOUTER, join_cols, extra_conds=extra_conds)
     alias = queryset.query.join(join)
 
-    # 增加判断喜欢字段
-    queryset = queryset.annotate(like_id=Col(alias, Like._meta.pk)) \
-        .select_related('author', 'category').prefetch_related('topics')
+    # 增加属性字段
+    queryset = queryset.annotate(
+        is_liked=Col(alias, Like._meta.pk),
+        like_count=Count('likes'),
+        comment_count=Count('comments'),
+        collect_count=Count('collects')) \
+        .select_related('author__profile', 'category') \
+        .prefetch_related('topics')
 
     return queryset
 
@@ -48,9 +54,13 @@ def select_pin(queryset, request):
     join = GenericJoin(Pin, Like, LOUTER, join_cols, extra_conds=extra_conds)
     alias = queryset.query.join(join)
 
-    # 增加判断喜欢字段
-    queryset = queryset.annotate(like_id=Col(alias, Like._meta.pk)) \
-        .select_related('author')
+    # 增加属性字段
+    queryset = queryset.annotate(
+        is_liked=Col(alias, Like._meta.pk),
+        like_count=Count('likes'),
+        comment_count=Count('comments'),
+        collect_count=Count('collects')) \
+        .select_related('author__profile')
 
     return queryset
 
@@ -73,8 +83,8 @@ def select_user(queryset, request):
 
     # 增加判断关注字段
     queryset = queryset.annotate(
-        following_id=Col(following_alias, Follow._meta.pk),
-        followed_id=Col(followed_alias, Follow._meta.pk)
+        is_following=Col(following_alias, Follow._meta.pk),
+        is_followed=Col(followed_alias, Follow._meta.pk)
     )
 
     return queryset

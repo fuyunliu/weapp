@@ -42,8 +42,8 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    # 'oauth.middleware.TokenMiddleware',  # Wrapped SessionMiddleware
+    # 'django.contrib.sessions.middleware.SessionMiddleware',
+    'oauth.middleware.TokenMiddleware',  # Wrapped SessionMiddleware
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -118,8 +118,8 @@ AUTH_USER_MODEL = 'oauth.User'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-        # 'oauth.authentication.TokenAuthentication'
+        # 'rest_framework.authentication.BasicAuthentication',
+        'oauth.authentication.TokenAuthentication'
     ],
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',

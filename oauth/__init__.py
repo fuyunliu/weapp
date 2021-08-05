@@ -5,14 +5,14 @@ from oauth.tokens import AccessToken
 
 
 def login_user(request, user):
+    # 这里将token认证和session认证结合
+    login(request, user)
+
     # 生成token并记录token的相关信息
     token = AccessToken.for_user(user)
     request.session['token_id'] = token['jti']
     request.session['last_seen'] = token['iat']
     token[settings.SESSION_COOKIE_NAME] = request.session.session_key
-
-    # 这里将token认证和session认证结合
-    login(request, user)
 
     return token
 

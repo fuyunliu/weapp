@@ -21,8 +21,8 @@ class Collection(models.Model):
     # 收藏夹收藏的文章
     articles = ManagerDescriptor(manager=GenericRelatedManager, through='collects.Collect', target='weblog.Article')
 
-    # 收藏夹收藏的想法
-    pins = ManagerDescriptor(manager=GenericRelatedManager, through='collects.Collect', target='weblog.Pin')
+    # 收藏夹收藏的动态
+    posts = ManagerDescriptor(manager=GenericRelatedManager, through='collects.Collect', target='weblog.Post')
 
     # 喜欢收藏夹的人
     likers = ManagerDescriptor(manager=GenericReversedManager, through='likes.Like', target='oauth.User')

@@ -13,18 +13,6 @@ def get_sentinel_user():
     return user
 
 
-def get_sentinel_comment():
-    user = get_sentinel_user()
-    comment = Comment.objects.filter(author=user).first()
-    if comment is not None:
-        return comment
-    comment = Comment(body='Comment has been deleted.')
-    comment.author = user
-    comment.content_object = user
-    comment.save()
-    return comment
-
-
 class Comment(models.Model):
     body = models.TextField('正文')
     body_html = models.TextField('源码')
@@ -37,7 +25,7 @@ class Comment(models.Model):
     )
     parent = models.ForeignKey(
         'self',
-        on_delete=models.SET(get_sentinel_comment),
+        on_delete=models.SET_NULL,
         related_name='children',
         verbose_name='父级评论',
         null=True

@@ -128,7 +128,7 @@ def is_cn_number(char):
     return char in hanzi.numbers
 
 
-def is_basic_latin_control_character(char):
+def is_basic_latin_control(char):
     return char in hanzi.basic_latin_control_characters
 
 
@@ -137,7 +137,7 @@ def is_separator(char):
             is_en_punctuation(char) or
             is_cn_punctuation(char) or
             is_whitespace(char) or
-            is_basic_latin_control_character(char)
+            is_basic_latin_control(char)
     )
 
 

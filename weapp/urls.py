@@ -23,7 +23,7 @@ router.register('profiles', oauth_views.ProfileViewSet, 'profile')
 router.register('groups', oauth_views.GroupViewSet, 'group')
 
 # 博客
-router.register('pins', weblog_views.PinViewSet, 'pin')
+router.register('posts', weblog_views.PostViewSet, 'post')
 router.register('articles', weblog_views.ArticleViewSet, 'article')
 router.register('categories', weblog_views.CategoryViewSet, 'category')
 router.register('topics', weblog_views.TopicViewSet, 'topic')

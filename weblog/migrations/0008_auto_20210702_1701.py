@@ -36,12 +36,12 @@ class Migration(migrations.Migration):
             field=models.PositiveIntegerField(default=0, verbose_name='关注量'),
         ),
         migrations.AddField(
-            model_name='pin',
+            model_name='post',
             name='comment_count',
             field=models.PositiveIntegerField(default=0, verbose_name='评论数'),
         ),
         migrations.AddField(
-            model_name='pin',
+            model_name='post',
             name='like_count',
             field=models.PositiveIntegerField(default=0, verbose_name='喜欢数'),
         ),

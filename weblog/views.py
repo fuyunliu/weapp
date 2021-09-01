@@ -4,8 +4,8 @@ from rest_framework.response import Response
 
 from commons import selectors
 from commons.permissions import IsOwnerOrReadOnly, IsAdminOrReadOnly
-from weblog.models import Article, Pin, Category, Topic
-from weblog.serializers import ArticleSerializer, PinSerializer, CategorySerializer, TopicSerializer
+from weblog.models import Article, Post, Category, Topic
+from weblog.serializers import ArticleSerializer, PostSerializer, CategorySerializer, TopicSerializer
 
 
 class ArticleViewSet(viewsets.ModelViewSet):
@@ -15,8 +15,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        if self.action == 'list' or self.action == 'retrieve':
-            queryset = selectors.select_article(queryset, self.request)
+        queryset = selectors.select_article(queryset, self.request)
         return queryset
 
     def perform_create(self, serializer):
@@ -59,15 +58,14 @@ class ArticleViewSet(viewsets.ModelViewSet):
         return selectors.article_comments(self, article, request)
 
 
-class PinViewSet(viewsets.ModelViewSet):
-    queryset = Pin.objects.all()
-    serializer_class = PinSerializer
+class PostViewSet(viewsets.ModelViewSet):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
     permission_classes = [IsOwnerOrReadOnly]
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        if self.action == 'list' or self.action == 'retrieve':
-            queryset = selectors.select_pin(queryset, self.request)
+        queryset = selectors.select_post(queryset, self.request)
         return queryset
 
     def perform_create(self, serializer):
@@ -75,23 +73,23 @@ class PinViewSet(viewsets.ModelViewSet):
 
     @action(methods=['get'], detail=True, renderer_classes=[renderers.StaticHTMLRenderer])
     def highlight(self, request, *args, **kwargs):
-        pin = self.get_object()
-        return Response(pin.body_html)
+        post = self.get_object()
+        return Response(post.body_html)
 
     @action(methods=['get'], detail=True)
     def likers(self, request, *args, **kwargs):
-        pin = self.get_object()
-        return selectors.pin_likers(self, pin, request)
+        post = self.get_object()
+        return selectors.post_likers(self, post, request)
 
     @action(methods=['get'], detail=True)
     def collections(self, request, *args, **kwargs):
-        pin = self.get_object()
-        return selectors.pin_collections(self, pin, request)
+        post = self.get_object()
+        return selectors.post_collections(self, post, request)
 
     @action(methods=['get'], detail=True)
     def comments(self, request, *args, **kwargs):
-        pin = self.get_object()
-        return selectors.pin_comments(self, pin, request)
+        post = self.get_object()
+        return selectors.post_comments(self, post, request)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):

@@ -15,3 +15,14 @@ def paginate(serializer_class):
             return Response(serializer.data)
         return wrapped
     return decorator
+
+
+def add_query(query_func):
+    def decorator(func):
+        @wraps(func)
+        def wrapped(view, instance, request):
+            queryset = func(view, instance, request)
+            queryset = query_func(queryset, request)
+            return queryset
+        return wrapped
+    return decorator

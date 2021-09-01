@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.db.utils import IntegrityError
 from django.contrib.auth import get_user_model
-from weblog.models import Pin
+from weblog.models import Post
 from faker import Faker
 
 
@@ -17,10 +17,10 @@ class Command(BaseCommand):
         for _ in range(int(count)):
             fields = {'body': faker.text()}
             try:
-                pin = Pin(**fields)
-                pin.author = user_model.objects.random().first()
-                pin.save()
+                post = Post(**fields)
+                post.author = user_model.objects.random().first()
+                post.save()
             except IntegrityError as e:
                 self.stdout.write(self.style.ERROR(str(e)))
             else:
-                self.stdout.write(self.style.SUCCESS(f'Successfully create pin {pin.pk}'))
+                self.stdout.write(self.style.SUCCESS(f'Successfully create pin {post.pk}'))

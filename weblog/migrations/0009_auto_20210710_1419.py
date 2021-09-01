@@ -27,11 +27,11 @@ class Migration(migrations.Migration):
             name='follow_count',
         ),
         migrations.RemoveField(
-            model_name='pin',
+            model_name='post',
             name='comment_count',
         ),
         migrations.RemoveField(
-            model_name='pin',
+            model_name='post',
             name='like_count',
         ),
         migrations.RemoveField(
@@ -54,7 +54,7 @@ class Migration(migrations.Migration):
             field=models.PositiveIntegerField(default=0, editable=False, verbose_name='浏览量'),
         ),
         migrations.AlterField(
-            model_name='pin',
+            model_name='post',
             name='body_html',
             field=models.TextField(editable=False, verbose_name='源码'),
         ),

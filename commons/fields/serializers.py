@@ -9,6 +9,7 @@ from django.utils.module_loading import import_string
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import CharField, ReadOnlyField, RegexField
 from rest_framework.relations import RelatedField
+from rest_framework.validators import UniqueValidator
 
 from commons.constants import Messages
 from commons.fields.phonenumber import PhoneNumber
@@ -112,16 +113,22 @@ class CheckContentTypeMixin:
 class DynamicFieldsMixin:
 
     def __init__(self, *args, **kwargs):
+        parent = kwargs.pop('parent', None)
         include = list(kwargs.pop('include', []))
         exclude = list(kwargs.pop('exclude', []))
         expand = list(kwargs.pop('expand', []))
 
         super().__init__(*args, **kwargs)
+        self.parent = parent
 
-        for field_name in self.get_remove_field_names(include, exclude, expand):
+        include = include or self._get_query_param_values('include')
+        exclude = exclude or self._get_query_param_values('exclude')
+        expand = expand or self._get_query_param_values('expand')
+
+        for field_name in self._get_remove_field_names(include, exclude, expand):
             self.fields.pop(field_name)
 
-    def get_remove_field_names(self, include, exclude, expand):
+    def _get_remove_field_names(self, include, exclude, expand):
         all_fields = set(self.fields)
         expandable_fields = set(getattr(self.Meta, 'expandable_fields', []))
         default_fields = all_fields - expandable_fields
@@ -136,3 +143,27 @@ class DynamicFieldsMixin:
 
         # 取交集以去除非法字段
         return list(set(remove) & all_fields)
+
+    def _get_query_param_values(self, field):
+        if self.parent is not None:
+            return []
+
+        if not hasattr(self, 'context') or 'request' not in self.context:
+            return []
+
+        values = self.context['request'].query_params.get(field, [])
+        return values and values.split(',')
+
+
+class UniqueFieldsMixin:
+
+    def __init__(self, *args, **kwargs):
+        self.omit_fields = list(kwargs.pop('omit_fields', []))
+        super().__init__(*args, **kwargs)
+
+    def get_fields(self):
+        fields = super().get_fields()
+        for field_name, field in fields.items():
+            if field_name in self.omit_fields:
+                field.validators = [v for v in field.validators if not isinstance(v, UniqueValidator)]
+        return fields

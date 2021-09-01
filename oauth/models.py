@@ -67,8 +67,8 @@ class User(AbstractUser):
     # 我喜欢的文章
     liking_articles = ManagerDescriptor(manager=GenericRelatedManager, through='likes.Like', target='weblog.Article')
 
-    # 我喜欢的想法
-    liking_pins = ManagerDescriptor(manager=GenericRelatedManager, through='likes.Like', target='weblog.Pin')
+    # 我喜欢的动态
+    liking_posts = ManagerDescriptor(manager=GenericRelatedManager, through='likes.Like', target='weblog.Post')
 
     # 我关注的分类
     following_categories = ManagerDescriptor(manager=GenericRelatedManager, through='follows.Follow', target='weblog.Category')
@@ -80,14 +80,22 @@ class User(AbstractUser):
         ordering = ['id']
         get_latest_by = 'id'
 
-    @property
-    def nickname(self):
-        return self.profile.nickname
-
     def save(self, *args, **kwargs):
         if not self.username:
             self.set_username()
         super().save(*args, **kwargs)
+
+    @property
+    def avatar(self):
+        return self.gravatar()
+
+    @property
+    def following_count(self):
+        return self.following.count()
+
+    @property
+    def follower_count(self):
+        return self.followers.count()
 
     def is_owned(self, user):
         return self == user

@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='Pin',
+            name='Post',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('body', models.TextField(verbose_name='正文')),
@@ -51,8 +51,8 @@ class Migration(migrations.Migration):
                 ('author', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='pins', to=settings.AUTH_USER_MODEL, verbose_name='作者')),
             ],
             options={
-                'verbose_name': '想法',
-                'verbose_name_plural': '想法',
+                'verbose_name': '动态',
+                'verbose_name_plural': '动态',
                 'ordering': ['-created'],
                 'get_latest_by': 'id',
             },

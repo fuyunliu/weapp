@@ -21,6 +21,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='comment',
             name='parent',
-            field=models.ForeignKey(null=True, on_delete=models.SET(comments.models.get_sentinel_comment), related_name='children', to='comments.comment', verbose_name='父级评论'),
+            field=models.ForeignKey(null=True, on_delete=models.SET_NULL, related_name='children', to='comments.comment', verbose_name='父级评论'),
         ),
     ]

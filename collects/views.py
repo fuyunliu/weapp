@@ -31,9 +31,9 @@ class CollectionViewSet(viewsets.ModelViewSet):
         return selectors.collection_articles(self, collection, request)
 
     @action(methods=['get'], detail=True)
-    def pins(self, request, *args, **kwargs):
+    def posts(self, request, *args, **kwargs):
         collection = self.get_object()
-        return selectors.collection_pins(self, collection, request)
+        return selectors.collection_posts(self, collection, request)
 
     @action(methods=['get'], detail=True)
     def likers(self, request, *args, **kwargs):

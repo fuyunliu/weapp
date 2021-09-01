@@ -126,6 +126,7 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'HTML_SELECT_CUTOFF': 10,
     'PAGE_SIZE': 10,
+    'DATETIME_FORMAT': '%Y-%m-%d %H:%M:%S',
 }
 
 USERNAME_RANDOM_NAMESPACE = 'uid'

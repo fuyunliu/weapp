@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
 from commons import selectors
-from commons.permissions import IsMeOrAdmin, IsOwnerOrAdmin
+from commons.permissions import IsOwnerOrReadOnly
 from oauth import login_user, logout_user
 from oauth.email import UserDestroyEmail
 from oauth.models import Profile
@@ -87,17 +87,15 @@ class TokenView(views.APIView):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = UserModel.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsMeOrAdmin]
+    permission_classes = [IsOwnerOrReadOnly]
 
     def get_queryset(self):
         user = self.request.user
         queryset = super().get_queryset()
-        if self.action == 'list':
-            if not user.is_staff:
-                queryset = queryset.filter(pk=user.pk)
-            queryset = selectors.select_user(queryset, self.request)
-        elif self.action == 'retrieve':
-            queryset = selectors.select_user(queryset, self.request)
+        queryset = selectors.select_user(queryset, self.request)
+
+        if self.action == 'list' and not user.is_staff:
+            queryset = queryset.filter(pk=user.pk)
 
         return queryset
 
@@ -113,10 +111,7 @@ class UserViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def get_serializer_class(self):
-        UserFollowSerializer = partial(UserSerializer, expand=['is_following', 'is_followed'])
         action_seres = {
-            'list': UserFollowSerializer,
-            'retrieve': UserFollowSerializer,
             'create': UserCreateSerializer,
             'destroy': UserDestroySerializer,
             'set_email': SetEmailSerializer,
@@ -220,9 +215,9 @@ class UserViewSet(viewsets.ModelViewSet):
         return selectors.user_articles(self, user, request)
 
     @action(methods=['get'], detail=True)
-    def pins(self, request, *args, **kwargs):
+    def posts(self, request, *args, **kwargs):
         user = self.get_object()
-        return selectors.user_pins(self, user, request)
+        return selectors.user_posts(self, user, request)
 
     @action(methods=['get'], detail=True)
     def tags(self, request, *args, **kwargs):
@@ -274,10 +269,10 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.get_object()
         return selectors.user_liking_articles(self, user, request)
 
-    @action(methods=['get'], detail=True, url_path='liking-pins')
-    def liking_pins(self, request, *args, **kwargs):
+    @action(methods=['get'], detail=True, url_path='liking-posts')
+    def liking_posts(self, request, *args, **kwargs):
         user = self.get_object()
-        return selectors.user_liking_pins(self, user, request)
+        return selectors.user_liking_posts(self, user, request)
 
     @action(methods=['get'], detail=True, url_path='following-categories')
     def following_categories(self, request, *args, **kwargs):
@@ -298,7 +293,7 @@ class ProfileViewSet(
 ):
     queryset = Profile.objects.all().select_related('user')
     serializer_class = ProfileSerializer
-    permission_classes = [IsOwnerOrAdmin]
+    permission_classes = [IsOwnerOrReadOnly]
 
     def get_queryset(self):
         user = self.request.user

@@ -31,29 +31,30 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = '__all__'
-        read_only_fields = ['nickname']
+        exclude = ['nick_mtime']
+        read_only_fields = ['user', 'nickname']
 
 
 class UserSerializer(DynamicFieldsMixin, serializers.ModelSerializer):
     date_joined = TimesinceField()
-    is_following = serializers.SerializerMethodField()
-    is_followed = serializers.SerializerMethodField()
+    avatar = serializers.ReadOnlyField()
+    article_count = serializers.ReadOnlyField()
+    post_count = serializers.ReadOnlyField()
+    is_following = serializers.ReadOnlyField()
+    is_followed = serializers.ReadOnlyField()
+    following_count = serializers.ReadOnlyField()
+    follower_count = serializers.ReadOnlyField()
+    nickname = serializers.ReadOnlyField(source='profile.nickname')
+    about_me = serializers.ReadOnlyField(source='profile.about_me')
 
     class Meta:
         model = UserModel
-        fields = [
-            'id', 'username', 'email', 'phone', 'first_name', 'last_name', 'date_joined',
-            'is_following', 'is_followed'
+        expandable_fields = [
+            'article_count', 'post_count', 'following_count',
+            'follower_count', 'is_following', 'is_followed',
         ]
-        read_only_fields = ['username', 'email', 'phone']
-        expandable_fields = ['is_following', 'is_followed']
-
-    def get_is_following(self, obj):
-        return hasattr(obj, 'is_following') and bool(obj.is_following)
-
-    def get_is_followed(self, obj):
-        return hasattr(obj, 'is_followed') and bool(obj.is_followed)
+        fields = ['id', 'username', 'nickname', 'avatar', 'about_me', 'date_joined'] + expandable_fields
+        read_only_fields = ['username']
 
 
 class UserCreateSerializer(serializers.ModelSerializer):

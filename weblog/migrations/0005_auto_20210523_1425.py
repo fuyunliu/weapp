@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
             field=models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID'),
         ),
         migrations.AlterField(
-            model_name='pin',
+            model_name='post',
             name='id',
             field=models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID'),
         ),

@@ -283,7 +283,7 @@ def collection_articles(view, instance, request):
 
 @paginate(serializer_class=PostSerializer)
 def collection_posts(view, instance, request):
-    queryset = instance.pins.all()
+    queryset = instance.posts.all()
     return queryset
 
 

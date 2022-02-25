@@ -338,7 +338,7 @@ class ShiSanBai(models.Model):
         return self.title
 
 
-class ZhiZiJiaXun(models.Model):
+class ZhuZiJiaXun(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField('标题', max_length=64)
     author = models.CharField('作者', max_length=64)
@@ -367,3 +367,15 @@ class SiShuWuJing(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class YouMengYing(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    content = models.TextField('内容')
+    comment = ArrayField(models.TextField(), blank=True)
+
+    class Meta:
+        ordering = ['id']
+        get_latest_by = 'id'
+        verbose_name = '幽梦影'
+        verbose_name_plural = verbose_name

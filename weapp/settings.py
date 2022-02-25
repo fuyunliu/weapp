@@ -117,7 +117,7 @@ AUTH_USER_MODEL = 'oauth.User'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
+        # 'rest_framework.authentication.SessionAuthentication',
         # 'rest_framework.authentication.BasicAuthentication',
         'oauth.authentication.TokenAuthentication'
     ],
@@ -136,7 +136,7 @@ NICKNAME_MODIFY_TIMEDELTA = timedelta(days=90)
 USER_DESTROY_TIMEDELTA = timedelta(days=14)
 
 # https://github.com/SimpleJWT/django-rest-framework-simplejwt#settings
-ACCESS_TOKEN_LIFETIME = timedelta(minutes=10)
+ACCESS_TOKEN_LIFETIME = timedelta(minutes=1)
 CAPTCHA_LIFETIME = timedelta(minutes=10)
 USER_ID_FIELD = 'id'
 USER_ID_CLAIM = 'user_id'

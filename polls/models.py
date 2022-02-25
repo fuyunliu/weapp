@@ -14,6 +14,7 @@ class Question(models.Model):
     )
     title = models.CharField('标题', max_length=64)
     max_choices = models.PositiveSmallIntegerField('最多几项', default=1)
+    end_time = models.DateTimeField('截止时间')
     created = models.DateTimeField('创建时间', auto_now_add=True, editable=False)
 
     objects = GenericQuerySet.as_manager()

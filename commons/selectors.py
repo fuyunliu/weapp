@@ -16,7 +16,7 @@ from likes.models import Like
 from oauth.serializers import UserSerializer
 from polls.serializers import QuestionSerializer
 from taggit.serializers import TagSerializer
-from weblog.models import Article, Post
+from weblog.models import Article
 from weblog.serializers import ArticleSerializer, PostSerializer, CategorySerializer, TopicSerializer
 
 UserModel = get_user_model()

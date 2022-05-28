@@ -1,5 +1,3 @@
-from functools import partial
-
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group

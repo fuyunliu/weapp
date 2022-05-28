@@ -1,5 +1,4 @@
 import functools
-import random
 
 from django.apps import apps
 from django.contrib.contenttypes.models import ContentType
@@ -9,7 +8,11 @@ from django.db.models.fields.related import ForeignObject
 from django.db.models.manager import Manager
 from django.db.models.options import Options
 from django.db.models.query import QuerySet
+from django.db.models.sql import AND
 from django.db.models.sql.datastructures import Join
+from django.db.models.sql.where import WhereNode
+
+from commons.utils import random
 
 
 class GenericQuerySet(QuerySet):
@@ -173,7 +176,7 @@ class GenericJoin(Join):
         join_field.get_joining_columns = get_joining_columns
         super().__init__(right._meta.db_table, left._meta.db_table, 'T', join_type, join_field, True)
 
-        def get_extra_restriction(self, where_class, left, right, extra_conds):
+        def get_extra_restriction(self, left, right, extra_conds):
             if extra_conds is None:
                 return None
 
@@ -182,11 +185,7 @@ class GenericJoin(Join):
                 lookup = field.get_lookup('exact')(field.get_col(self.table_alias), fvalue)
                 return lookup
 
-            cond = where_class()
-            for fname, fvalue in extra_conds:
-                cond.add(get_lookup(fname, fvalue), 'AND')
-
-            return cond
+            return WhereNode([get_lookup(fname, fvalue) for fname, fvalue in extra_conds], connector=AND)
 
         self.get_extra_restriction = functools.partial(get_extra_restriction, self=self, left=left, right=right, extra_conds=extra_conds)
 
@@ -207,15 +206,14 @@ class GenericJoin(Join):
 
         # Add a single condition inside parentheses for whatever
         # get_extra_restriction() returns.
-        extra_cond = self.join_field.get_extra_restriction(
-            compiler.query.where_class, self.table_alias, self.parent_alias)
+        extra_cond = self.join_field.get_extra_restriction(self.table_alias, self.parent_alias)
         if extra_cond:
             extra_sql, extra_params = compiler.compile(extra_cond)
             join_conditions.append('(%s)' % extra_sql)
             params.extend(extra_params)
 
         # 添加额外的 Join On 条件
-        extra_cond = self.get_extra_restriction(where_class=compiler.query.where_class)
+        extra_cond = self.get_extra_restriction()
         if extra_cond:
             extra_sql, extra_params = compiler.compile(extra_cond)
             join_conditions.append('(%s)' % extra_sql)

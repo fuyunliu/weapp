@@ -24,7 +24,8 @@ class Config(collections.UserDict):
         if self.auto_reload:
             self._settings()
 
-    def _settings(self):
+    @staticmethod
+    def _settings():
         import importlib
         from django.conf import settings
         from django.conf import LazySettings

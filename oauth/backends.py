@@ -4,17 +4,10 @@ from jwt import algorithms
 
 from commons.constants import Messages
 
-ALLOWED_ALGORITHMS = (
-    'HS256',
-    'HS384',
-    'HS512',
-    'RS256',
-    'RS384',
-    'RS512',
-)
-
 
 class TokenBackend:
+    ALLOWED_ALGORITHMS = ('HS256', 'HS384', 'HS512', 'RS256', 'RS384', 'RS512')
+
     def __init__(
         self,
         algorithm,
@@ -30,7 +23,7 @@ class TokenBackend:
         self.issuer = issuer
 
     def _validate_algorithm(self, algorithm):
-        assert algorithm in ALLOWED_ALGORITHMS, Messages.UNKNOWN_ALGORITHM.format(algorithm)
+        assert algorithm in self.ALLOWED_ALGORITHMS, Messages.UNKNOWN_ALGORITHM.format(algorithm)
 
         if algorithm in algorithms.requires_cryptography:
             assert algorithms.has_crypto, Messages.REQUIRE_CRYPTO.format(algorithm)

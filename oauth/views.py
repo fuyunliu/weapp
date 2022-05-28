@@ -138,7 +138,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         instance.is_active = False
         instance.save(update_fields=['is_active'])
-        destroy_user.apply_async((instance.pk,), eta=timezone.now() + settings.USER_DESTROY_TIMEDELTA, expires=60)
+        destroy_user.apply_async((instance.pk,), eta=timezone.now() + settings.OAUTH['USER_DESTROY_LIFETIME'], expires=60)
 
     @action(['get'], detail=False)
     def me(self, request, *args, **kwargs):

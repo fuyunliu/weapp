@@ -8,7 +8,7 @@ from phonenumbers.util import unicod
 class PhoneNumber(phonenumbers.PhoneNumber):
     # https://github.com/stefanfoulis/django-phonenumber-field
 
-    DEFAULT_REGION = getattr(settings, 'PHONENUMBER_DEFAULT_REGION', None)
+    DEFAULT_REGION = settings.OAUTH.get('PHONENUMBER_DEFAULT_REGION')
 
     @classmethod
     def from_string(cls, phone_number, region=None):

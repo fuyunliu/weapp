@@ -17,11 +17,11 @@ from commons.utils import get_random_name
 
 
 def _username_mtime():
-    return timezone.now() - settings.USERNAME_MODIFY_TIMEDELTA
+    return timezone.now() - settings.OAUTH['USERNAME_MODIFY_LIFETIME']
 
 
 def _nickname_mtime():
-    return timezone.now() - settings.NICKNAME_MODIFY_TIMEDELTA
+    return timezone.now() - settings.OAUTH['NICKNAME_MODIFY_LIFETIME']
 
 
 class UserManager(_UserManager):
@@ -248,7 +248,7 @@ class TokenUser:
 
     @cached_property
     def id(self):
-        return self.token[settings.USER_ID_CLAIM]
+        return self.token[settings.OAUTH.get('USER_ID_CLAIM', 'user_id')]
 
     @cached_property
     def pk(self):

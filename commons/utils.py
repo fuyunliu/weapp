@@ -1,13 +1,15 @@
-import re
 import itertools
+import re
 import secrets
 import string
+import time
 from calendar import timegm
 from datetime import datetime
 
 import pendulum
 from django.conf import settings
 from django.utils.timezone import is_naive, make_aware, utc
+
 from commons import hanzi
 
 random = secrets.SystemRandom()
@@ -29,9 +31,13 @@ def get_random_number():
 
 def get_random_name():
     chars = string.ascii_lowercase + string.digits
-    namespace = getattr(settings, 'USERNAME_RANDOM_NAMESPACE', 'uid')
+    namespace = settings.OAUTH.get('USERNAME_RANDOM_NAMESPACE', 'uid')
     name = '_'.join((namespace, get_random_string(14, chars)))
     return name
+
+
+def make_nonce():
+    return str(time.time()) + str(random.randint(0, 999999))
 
 
 def chunks(iterable, size):
@@ -47,7 +53,6 @@ def timesince(dt):
 def make_utc(dt):
     if settings.USE_TZ and is_naive(dt):
         return make_aware(dt, timezone=utc)
-
     return dt
 
 
@@ -134,10 +139,10 @@ def is_basic_latin_control(char):
 
 def is_separator(char):
     return (
-            is_en_punctuation(char) or
-            is_cn_punctuation(char) or
-            is_whitespace(char) or
-            is_basic_latin_control(char)
+        is_en_punctuation(char) or
+        is_cn_punctuation(char) or
+        is_whitespace(char) or
+        is_basic_latin_control(char)
     )
 
 

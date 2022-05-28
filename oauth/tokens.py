@@ -6,6 +6,9 @@ from commons.utils import aware_utcnow, make_timestamp, from_timestamp
 
 
 class Token:
+    """
+    https://github.com/jazzband/djangorestframework-simplejwt
+    """
     token_type = None
     lifetime = None
 
@@ -92,15 +95,15 @@ class Token:
 
     @classmethod
     def for_user(cls, user):
-        user_id = getattr(user, getattr(settings, 'USER_ID_FIELD', 'id'))
+        user_id = getattr(user, settings.OAUTH.get('USER_ID_FIELD', 'id'))
         user_id = user_id if isinstance(user_id, int) else str(user_id)
 
         token = cls()
-        token[getattr(settings, 'USER_ID_CLAIM', 'user_id')] = user_id
+        token[settings.OAUTH.get('USER_ID_CLAIM', 'user_id')] = user_id
 
         return token
 
 
 class AccessToken(Token):
     token_type = 'access'
-    lifetime = settings.ACCESS_TOKEN_LIFETIME
+    lifetime = settings.OAUTH['ACCESS_TOKEN_LIFETIME']

@@ -63,12 +63,6 @@ class TokenBackend:
             }
         )
 
-    def get_unverified_header(self, token):
-        return jwt.get_unverified_header(token)
-
-    def get_unverified_payload(self, token):
-        return jwt.decode(token, options={'verify_signature': False})
-
 
 token_backend = TokenBackend(
     'HS256',

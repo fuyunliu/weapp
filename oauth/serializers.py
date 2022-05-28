@@ -127,7 +127,7 @@ class SendCaptchaSerializer(serializers.Serializer):
         tape = attrs['tape']
         authname = attrs['authname']
         captcha = utils.get_random_number()
-        timeout = settings.CAPTCHA_LIFETIME.total_seconds()
+        timeout = settings.OAUTH['CAPTCHA_LIFETIME'].total_seconds()
 
         try:
             # 合法的 Email
@@ -168,7 +168,7 @@ class SetUsernameSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        allowed_time = settings.USERNAME_MODIFY_TIMEDELTA - (timezone.now() - self.instance.name_mtime)
+        allowed_time = settings.OAUTH['USERNAME_MODIFY_LIFETIME'] - (timezone.now() - self.instance.name_mtime)
         if allowed_time.total_seconds() > 0:
             raise ValidationError(Messages.NEW_USERNAME.format(allowed_time.days))
         return attrs
@@ -186,7 +186,7 @@ class SetNicknameSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         profile = self.instance.profile
-        allowed_time = settings.NICKNAME_MODIFY_TIMEDELTA - (timezone.now() - profile.nick_mtime)
+        allowed_time = settings.OAUTH['NICKNAME_MODIFY_LIFETIME'] - (timezone.now() - profile.nick_mtime)
         if allowed_time.total_seconds() > 0:
             raise ValidationError(Messages.NEW_NICKNAME.format(allowed_time.days))
         return attrs

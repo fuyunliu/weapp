@@ -59,8 +59,5 @@ class Config(collections.UserDict):
             self._load()
         return super().__getitem__(key)
 
-    def __missing__(self, key):
-        return None
-
 
 config = Config(BASE_DIR / 'weapp' / 'settings.dev')

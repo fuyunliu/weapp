@@ -66,12 +66,12 @@ class TokenAuthentication(BaseAuthentication):
         Returns a database user object using the given validated token.
         """
         try:
-            user_id = validated_token[settings.OAUTH.get('USER_ID_CLAIM', 'user_id')]
+            user_id = validated_token[settings.OAUTH['USER_ID_CLAIM']]
         except KeyError:
             raise AuthenticationFailed(Messages.UNKNOWN_UID)
 
         try:
-            user = self.user_model.objects.get(**{settings.OAUTH.get('USER_ID_FIELD', 'id'): user_id})
+            user = self.user_model.objects.get(**{settings.OAUTH['USER_ID_FIELD']: user_id})
         except self.user_model.DoesNotExist:
             raise AuthenticationFailed(Messages.USER_NOT_FOUND)
 
@@ -84,6 +84,6 @@ class TokenAuthentication(BaseAuthentication):
         """
         Returns a stateless user object using the given validated token.
         """
-        if settings.OAUTH.get('USER_ID_CLAIM', 'user_id') not in validated_token:
+        if settings.OAUTH['USER_ID_CLAIM'] not in validated_token:
             raise AuthenticationFailed(Messages.UNKNOWN_UID)
         return TokenUser(validated_token)

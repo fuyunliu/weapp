@@ -248,7 +248,7 @@ class TokenUser:
 
     @cached_property
     def id(self):
-        return self.token[settings.OAUTH.get('USER_ID_CLAIM', 'user_id')]
+        return self.token[settings.OAUTH['USER_ID_CLAIM']]
 
     @cached_property
     def pk(self):

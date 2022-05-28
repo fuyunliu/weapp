@@ -31,7 +31,7 @@ def get_random_number():
 
 def get_random_name():
     chars = string.ascii_lowercase + string.digits
-    namespace = settings.OAUTH.get('USERNAME_RANDOM_NAMESPACE', 'uid')
+    namespace = settings.OAUTH['USERNAME_RANDOM_NAMESPACE']
     name = '_'.join((namespace, get_random_string(14, chars)))
     return name
 

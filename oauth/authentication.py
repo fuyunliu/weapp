@@ -3,19 +3,14 @@ from django.contrib.auth import get_user_model
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
-from oauth.models import TokenUser
-from oauth.tokens import AccessToken
 from commons.constants import Messages
 from commons.utils import aware_utcnow, make_timestamp
+from oauth.models import TokenUser
+from oauth.tokens import AccessToken
 
 
 class TokenAuthentication(BaseAuthentication):
-    auth_header_type = 'Bearer'
     www_authenticate_realm = 'api'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.user_model = get_user_model()
 
     def authenticate(self, request):
         raw_token = request.raw_token
@@ -23,7 +18,7 @@ class TokenAuthentication(BaseAuthentication):
             return None
 
         validated_token = self.get_validated_token(raw_token, request)
-        user = self.get_model_user(validated_token)
+        user = self.get_user(validated_token)
 
         # 认证成功，记录本次请求时间
         request.session['last_seen'] = make_timestamp(aware_utcnow())
@@ -31,7 +26,7 @@ class TokenAuthentication(BaseAuthentication):
         return user, validated_token
 
     def authenticate_header(self, request):
-        return f'{self.auth_header_type} realm="{self.www_authenticate_realm}"'
+        return f'Bearer realm="{self.www_authenticate_realm}"'
 
     def get_validated_token(self, raw_token, request):
         try:
@@ -61,7 +56,7 @@ class TokenAuthentication(BaseAuthentication):
         except Exception as e:
             raise AuthenticationFailed(str(e))
 
-    def get_model_user(self, validated_token):
+    def get_user(self, validated_token):
         """
         Returns a database user object using the given validated token.
         """
@@ -70,9 +65,10 @@ class TokenAuthentication(BaseAuthentication):
         except KeyError:
             raise AuthenticationFailed(Messages.UNKNOWN_UID)
 
+        user_model = get_user_model()
         try:
-            user = self.user_model.objects.get(**{settings.OAUTH['USER_ID_FIELD']: user_id})
-        except self.user_model.DoesNotExist:
+            user = user_model.objects.get(**{settings.OAUTH['USER_ID_FIELD']: user_id})
+        except user_model.DoesNotExist:
             raise AuthenticationFailed(Messages.USER_NOT_FOUND)
 
         if not user.is_active:
@@ -80,7 +76,9 @@ class TokenAuthentication(BaseAuthentication):
 
         return user
 
-    def get_token_user(self, validated_token):
+
+class TokenUserAuthentication(TokenAuthentication):
+    def get_user(self, validated_token):
         """
         Returns a stateless user object using the given validated token.
         """

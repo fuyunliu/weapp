@@ -119,14 +119,13 @@ class User(AbstractUser):
                 break
 
     def gravatar(self, size=80):
-        url = "https://gravatar.loli.top/avatar"
         hash = hashlib.md5(self.email.lower().encode('utf-8')).hexdigest()
         query = {
             's': size,
             'd': 'identicon',
             'r': 'g'
         }
-        return f'{url}/{hash}?{urlparse.urlencode(query)}'
+        return f'{settings.GRAVATOR_URL}/{hash}?{urlparse.urlencode(query)}'
 
 
 class Profile(models.Model):

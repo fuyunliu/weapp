@@ -42,6 +42,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    # 'oauth.middleware.NonceMiddleware',
     # 'django.contrib.sessions.middleware.SessionMiddleware',
     'oauth.middleware.TokenMiddleware',  # Wrapped SessionMiddleware
     'corsheaders.middleware.CorsMiddleware',
@@ -72,8 +73,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'weapp.wsgi.application'
 
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 DATABASES = config['DATABASES']
+
+# CACHES = config['CACHES']
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
@@ -117,7 +122,7 @@ AUTH_USER_MODEL = 'oauth.User'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
+        # 'rest_framework.authentication.SessionAuthentication',
         # 'rest_framework.authentication.BasicAuthentication',
         'oauth.authentication.TokenAuthentication'
     ],
@@ -137,7 +142,7 @@ OAUTH = {
     'USERNAME_MODIFY_LIFETIME': timedelta(days=365),
     'NICKNAME_MODIFY_LIFETIME': timedelta(days=90),
     'USER_DESTROY_LIFETIME': timedelta(days=14),
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1000),
     'CAPTCHA_LIFETIME': timedelta(minutes=10),
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
@@ -194,3 +199,6 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8000",
     "http://127.0.0.1:3000",
 ]
+
+# Gravator镜像源
+GRAVATOR_URL = "https://gravatar.zeruns.tech/avatar/"
